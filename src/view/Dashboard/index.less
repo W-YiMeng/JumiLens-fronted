@@ -1,0 +1,76 @@
+.dashboard-root {
+    // CSS custom properties scoped to dashboard
+    --color-bg-dashboard: #f0f2f5;
+    --color-bg-header: #003362;
+    --color-bg-panel: #ffffff;
+    --color-bg-panel-title: #fafafa;
+    --color-text-header: #ffffff;
+    --color-text-panel-title: #1a1a1a;
+    --color-text-body: #555;
+    --color-border: #e8e8e8;
+    --shadow-panel: 0 1px 4px rgba(0, 0, 0, 0.08);
+    --shadow-header: 0 2px 8px rgba(0, 0, 0, 0.15);
+    --radius: 8px;
+
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--color-bg-dashboard);
+
+    .header-root {
+        height: 3.5vh;
+        min-height: 40px;
+        background: var(--color-bg-header);
+        color: var(--color-text-header);
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        box-shadow: var(--shadow-header);
+        z-index: 10;
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+    }
+
+    .main-content {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        padding: 12px;
+        gap: 12px;
+
+        .view1,
+        .view2 {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--color-bg-panel);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-panel);
+            overflow: hidden;
+
+            .panel-title {
+                padding: 10px 16px;
+                background: var(--color-bg-panel-title);
+                border-bottom: 1px solid var(--color-border);
+                font-size: 15px;
+                font-weight: 600;
+                color: var(--color-text-panel-title);
+                letter-spacing: 0.5px;
+            }
+
+            .panel-body {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 48px;
+                color: var(--color-text-body);
+                font-weight: 300;
+            }
+        }
+    }
+}
