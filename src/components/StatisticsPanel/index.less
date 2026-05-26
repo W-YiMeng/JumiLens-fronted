@@ -1,0 +1,101 @@
+.statistics-panel {
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e0e6ed;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a2a4a;
+  }
+
+  .loading {
+    text-align: center;
+    color: #a0d2eb;
+    padding: 20px;
+    font-size: 12px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px;
+      background: rgba(42, 42, 74, 0.3);
+      border-radius: 6px;
+      border: 1px solid #2a2a4a;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(42, 42, 74, 0.5);
+        transform: translateY(-1px);
+      }
+
+      .stat-label {
+        font-size: 10px;
+        color: #a0d2eb;
+        margin-bottom: 4px;
+      }
+
+      .stat-value {
+        font-family: 'Consolas', monospace;
+        font-size: 11px;
+        color: #e0e6ed;
+        font-weight: 600;
+
+        &.highlight {
+          color: #ffd700;
+        }
+
+        &.low {
+          color: #5b7cff;
+        }
+
+        &.high {
+          color: #ff6b6b;
+        }
+      }
+    }
+  }
+
+  .stats-summary {
+    display: flex;
+    justify-content: space-around;
+    padding-top: 8px;
+    border-top: 1px solid #2a2a4a;
+
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+
+      .summary-label {
+        font-size: 10px;
+        color: #a0d2eb;
+      }
+
+      .summary-value {
+        font-family: 'Consolas', monospace;
+        font-size: 12px;
+        color: #4ecdc4;
+        font-weight: 600;
+        background: rgba(78, 205, 196, 0.1);
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid #4ecdc4;
+      }
+    }
+  }
+}
