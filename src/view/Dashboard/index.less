@@ -1,89 +1,79 @@
 .dashboard-root {
-  // CSS custom properties scoped to dashboard
-  --color-bg-dashboard: #0d1117;
-  --color-bg-header: #161b22;
-  --color-bg-panel: #0a0a1a;
-  --color-text-header: #e0e6ed;
-  --color-text-panel-title: #1a1a1a;
-  --color-text-body: #a0d2eb;
-  --color-border: #2a2a4a;
-  --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-header: 0 2px 10px rgba(0, 0, 0, 0.3);
-  --radius: 12px;
+    // CSS custom properties scoped to dashboard
+    --color-bg-dashboard: #f0f2f5;
+    --color-bg-header: #003362;
+    --color-bg-panel: #ffffff;
+    --color-bg-panel-title: #fafafa;
+    --color-text-header: #ffffff;
+    --color-text-panel-title: #1a1a1a;
+    --color-text-body: #555;
+    --color-border: #e8e8e8;
+    --shadow-panel: 0 1px 4px rgba(0, 0, 0, 0.08);
+    --shadow-header: 0 2px 8px rgba(0, 0, 0, 0.15);
+    --radius: 8px;
 
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: var(--color-bg-dashboard);
-  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-
-  .header-root {
-    height: 50px;
-    min-height: 50px;
-    background: linear-gradient(90deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
-    color: var(--color-text-header);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    box-shadow: var(--shadow-header);
-    z-index: 10;
-    border-bottom: 1px solid var(--color-border);
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--color-bg-dashboard);
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
-    .header-title {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      background: linear-gradient(90deg, #4ecdc4 0%, #a0d2eb 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .header-root {
+        height: 3.5vh;
+        min-height: 40px;
+        background: var(--color-bg-header);
+        color: var(--color-text-header);
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        box-shadow: var(--shadow-header);
+        z-index: 10;
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
     }
 
-    .header-subtitle {
-      font-size: 12px;
-      color: #8b9dc3;
-      font-weight: 400;
-      letter-spacing: 2px;
-      text-transform: uppercase;
+    .main-content {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        padding: 12px;
+        gap: 12px;
+
+        .view1,
+        .view2 {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--color-bg-panel);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-panel);
+            overflow: hidden;
+            min-height: 0;
+
+            .panel-title {
+                padding: 10px 16px;
+                background: var(--color-bg-panel-title);
+                border-bottom: 1px solid var(--color-border);
+                font-size: 15px;
+                font-weight: 600;
+                color: var(--color-text-panel-title);
+                letter-spacing: 0.5px;
+                flex-shrink: 0;
+            }
+
+            .panel-body {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--color-text-body);
+                min-height: 0;
+                overflow: hidden;
+            }
+        }
     }
-  }
-
-  .main-content {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-    padding: 0;
-
-    .nyx-visualization {
-      width: 100%;
-      height: 100%;
-    }
-  }
-}
-
-// 全局滚动条样式
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0a0a1a;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #2a2a4a;
-  border-radius: 4px;
-
-  &:hover {
-    background: #3a3a5a;
-  }
-}
-
-// 全局选中样式
-::selection {
-  background: rgba(78, 205, 196, 0.3);
-  color: #e0e6ed;
 }

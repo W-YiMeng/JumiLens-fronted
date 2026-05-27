@@ -62,11 +62,11 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     const chartHeight = height - padding.top - padding.bottom;
 
     // 清空画布
-    ctx.fillStyle = '#0a0a1a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
     // 绘制网格
-    ctx.strokeStyle = '#2a2a4a';
+    ctx.strokeStyle = '#f0f0f0';
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 4]);
 
@@ -112,25 +112,25 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       // 渐变色
       const gradient = ctx.createLinearGradient(0, y, 0, padding.top + chartHeight);
       if (isSelected) {
-        gradient.addColorStop(0, '#ff6b6b');
-        gradient.addColorStop(1, '#ee5a5a');
+        gradient.addColorStop(0, '#ff7875');
+        gradient.addColorStop(1, '#ff4d4f');
       } else {
-        gradient.addColorStop(0, '#4ecdc4');
-        gradient.addColorStop(0.5, '#44a08d');
-        gradient.addColorStop(1, '#093637');
+        gradient.addColorStop(0, '#69b1ff');
+        gradient.addColorStop(0.5, '#1677ff');
+        gradient.addColorStop(1, '#003eb3');
       }
 
       ctx.fillStyle = gradient;
       ctx.fillRect(x + 1, y, binWidth - 2, barHeight);
 
       // 条形边框
-      ctx.strokeStyle = isSelected ? '#ff8585' : '#5ee7df';
+      ctx.strokeStyle = isSelected ? '#ffa39e' : 'transparent';
       ctx.lineWidth = 0.5;
       ctx.strokeRect(x + 1, y, binWidth - 2, barHeight);
     }
 
     // 绘制坐标轴
-    ctx.strokeStyle = '#a0d2eb';
+    ctx.strokeStyle = '#bfbfbf';
     ctx.lineWidth = 2;
 
     // Y轴
@@ -146,7 +146,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     ctx.stroke();
 
     // Y轴标签
-    ctx.fillStyle = '#a0d2eb';
+    ctx.fillStyle = '#8c8c8c';
     ctx.font = '11px Consolas, monospace';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
@@ -199,7 +199,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
 
     // 绘制标题
     ctx.font = 'bold 14px Consolas, monospace';
-    ctx.fillStyle = '#e0e6ed';
+    ctx.fillStyle = '#1a1a1a';
     ctx.textAlign = 'center';
     ctx.fillText(
       `密度分布直方图 - 时间步 ${timestep}`,
@@ -241,7 +241,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     // 绘制统计信息
-    ctx.fillStyle = '#a0d2eb';
+    ctx.fillStyle = '#8c8c8c';
     ctx.font = '10px Consolas, monospace';
     ctx.textAlign = 'left';
     ctx.fillText(`总计: ${stats.total.toLocaleString()}`, padding.left + chartWidth + 10, padding.top + 20);
