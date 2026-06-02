@@ -24,11 +24,19 @@
   }
 }
 
-.time-controls {
+.time-controls-wrapper {
   position: absolute;
-  bottom: 16px;
+  bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 95vw;
+}
+
+.time-controls {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -36,7 +44,6 @@
   backdrop-filter: blur(6px);
   padding: 10px 20px;
   border-radius: 8px;
-  z-index: 50;
 
   .play-btn {
     cursor: pointer;
@@ -225,6 +232,488 @@
         border-radius: 50%;
         background: #fff;
       }
+    }
+  }
+
+  .tf-grad-controls {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+
+    .tf-grad-header {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    label {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 3px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 80px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.25);
+      outline: none;
+      cursor: pointer;
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4fc3f7;
+      }
+    }
+
+    span {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 10px;
+      min-width: 28px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .tf-diff-controls {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+
+    .tf-diff-header {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .tf-diff-toggles {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+
+      .tf-diff-toggle {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.5);
+        transition: all 0.15s;
+        user-select: none;
+
+        &.active {
+          color: rgba(255, 255, 255, 0.9);
+          border-color: rgba(255, 255, 255, 0.5);
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tf-diff-toggle-swatch {
+          width: 8px;
+          height: 8px;
+          border-radius: 2px;
+          display: inline-block;
+        }
+        .tf-diff-toggle-orig {
+          background: rgba(255, 255, 255, 0.6);
+        }
+        .tf-diff-toggle-diff {
+          background: linear-gradient(135deg, #ff3030 50%, #3060ff 50%);
+        }
+      }
+    }
+
+    label {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 3px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 80px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.25);
+      outline: none;
+      cursor: pointer;
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ff6b6b;
+      }
+    }
+
+    .tf-cat-select {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 10px;
+      cursor: pointer;
+      outline: none;
+      max-width: 180px;
+
+      option {
+        background: #222;
+        color: #fff;
+      }
+    }
+
+    span {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 10px;
+      min-width: 28px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// ── Diff timeline ──────────────────────────────────────────
+
+.diff-timeline {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 600px;
+
+  .diff-timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .diff-ref-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .diff-ref-label {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .diff-ref-step {
+    background: rgba(212, 175, 55, 0.2);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #ffd700;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover {
+      background: rgba(212, 175, 55, 0.35);
+    }
+  }
+
+  .diff-ref-step-static {
+    color: #ffd700;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  .diff-ref-hint {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 9px;
+  }
+
+  .diff-timeline-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .diff-sort-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  .diff-add-group {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+  }
+
+  .diff-add-input {
+    width: 48px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    padding: 3px 4px;
+    font-size: 10px;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.25);
+    }
+    &:focus {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    // hide spin buttons
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+}
+
+.diff-thumbnail-strip {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    height: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+  }
+}
+
+.diff-thumbnail {
+  flex-shrink: 0;
+  width: 86px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  &.active {
+    border-color: rgba(255, 215, 0, 0.6);
+    background: rgba(255, 215, 0, 0.08);
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.2);
+  }
+
+  &.reference {
+    border-color: rgba(212, 175, 55, 0.5);
+    background: rgba(212, 175, 55, 0.1);
+
+    .diff-thumb-label {
+      color: #ffd700;
+      font-weight: 600;
+    }
+  }
+
+  .diff-thumb-img {
+    width: 72px;
+    height: 54px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  .diff-thumb-ref-icon {
+    color: #ffd700;
+    font-size: 20px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  }
+
+  .diff-thumb-loading,
+  .diff-thumb-empty {
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 10px;
+  }
+
+  .diff-thumb-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .diff-stats-bar {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .diff-stats-track {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1px;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .diff-stats-growth {
+    height: 100%;
+    background: #ff3030;
+    border-radius: 1px 0 0 1px;
+    transition: width 0.3s;
+  }
+
+  .diff-stats-decline {
+    height: 100%;
+    background: #3060ff;
+    border-radius: 0 1px 1px 0;
+    transition: width 0.3s;
+  }
+
+  .diff-stats-text {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 8px;
+    white-space: nowrap;
+  }
+
+  .diff-stats-empty {
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 8px;
+    text-align: center;
+  }
+
+  .diff-thumb-remove {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    line-height: 14px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 2;
+
+    &:hover {
+      background: rgba(220, 50, 50, 0.8);
+      border-color: rgba(255, 100, 100, 0.6);
+      color: #fff;
+    }
+  }
+
+  &:hover .diff-thumb-remove {
+    opacity: 1;
+  }
+}
+
+.diff-empty-hint {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  padding: 12px 0;
+  text-align: center;
+  width: 100%;
+}
+
+// ── Sorted-by-change strip ─────────────────────────────────
+
+.diff-sorted-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+
+  .diff-sorted-label {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 9px;
+    text-transform: uppercase;
+    margin-right: 2px;
+  }
+
+  .diff-sorted-chip {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.65);
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .diff-chip-dot {
+      font-size: 8px;
     }
   }
 }

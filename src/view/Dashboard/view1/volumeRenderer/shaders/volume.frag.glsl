@@ -2,6 +2,7 @@ precision highp float;
 precision highp sampler3D;
 
 uniform sampler3D uVolume;
+uniform sampler3D uDiffVolume;
 uniform sampler2D uTransferFunction;
 uniform vec3 uCameraPos;
 uniform mat4 uInvViewMatrix;
@@ -10,6 +11,14 @@ uniform vec2 uResolution;
 uniform vec3 uBoxMin;
 uniform vec3 uBoxMax;
 uniform float uStepSize;
+uniform float uStepRef;
+uniform float uGradLow;
+uniform float uGradHigh;
+uniform float uGradWeight;
+uniform bool uHasDiff;
+uniform float uDiffOpacity;
+uniform bool uShowOriginal;
+uniform bool uShowDifference;
 
 varying vec2 vUv;
 
@@ -17,6 +26,11 @@ struct Ray {
     vec3 origin;
     vec3 dir;
 };
+
+float hash(vec2 p) {
+    float h = dot(p, vec2(127.1, 311.7));
+    return fract(sin(h) * 43758.5453);
+}
 
 bool intersectBox(Ray ray, vec3 boxMin, vec3 boxMax, out float tNear, out float tFar) {
     vec3 invDir = 1.0 / ray.dir;
@@ -33,7 +47,7 @@ vec4 transferFunction(float density) {
     return texture2D(uTransferFunction, vec2(density, 0.5));
 }
 
-vec3 calcGradient(vec3 texCoord) {
+vec3 calcGradient(vec3 texCoord, out float mag) {
     float step = 1.0 / 128.0;
     float vL = texture(uVolume, texCoord - vec3(step, 0.0, 0.0)).r;
     float vR = texture(uVolume, texCoord + vec3(step, 0.0, 0.0)).r;
@@ -42,8 +56,8 @@ vec3 calcGradient(vec3 texCoord) {
     float vB = texture(uVolume, texCoord - vec3(0.0, 0.0, step)).r;
     float vF = texture(uVolume, texCoord + vec3(0.0, 0.0, step)).r;
     vec3 g = vec3(vR - vL, vU - vD, vF - vB);
-    float len = length(g);
-    return len < 1e-4 ? vec3(0.0) : -g / len;
+    mag = length(g);
+    return mag < 1e-4 ? vec3(0.0) : -g / mag;
 }
 
 vec3 phongShade(vec3 color, vec3 normal, vec3 lightDir, vec3 viewDir) {
@@ -79,8 +93,11 @@ void main() {
     int maxSteps = int(ceil((tFar - tNear) / uStepSize));
     maxSteps = min(maxSteps, 512);
 
+    float jitter = hash(gl_FragCoord.xy) * uStepSize;
+    float t = tNear + jitter;
+
     vec4 accum = vec4(0.0);
-    float t = tNear;
+    float stepRatio = uStepSize / uStepRef;
 
     for (int i = 0; i < 512; i++) {
         if (i >= maxSteps) break;
@@ -91,19 +108,46 @@ void main() {
         texCoord = clamp(texCoord, 0.0, 1.0);
 
         float density = texture(uVolume, texCoord).r;
+        float diffVal = 0.0;
+        if (uHasDiff) {
+            diffVal = texture(uDiffVolume, texCoord).r;
+        }
 
-        if (density > 0.005) {
+        if (density > 0.005 || abs(diffVal) > 0.01) {
             vec4 tfColor = transferFunction(density);
 
-            if (tfColor.a > 0.005) {
-                vec3 normal = calcGradient(texCoord);
-                if (length(normal) > 1e-4) {
+            float alpha = tfColor.a;
+            if (alpha > 0.005 || abs(diffVal) > 0.01) {
+                float gradMag;
+                vec3 normal = calcGradient(texCoord, gradMag);
+
+                float alphaCorrected = 1.0 - pow(1.0 - alpha, stepRatio);
+                if (uGradWeight > 0.0 && gradMag > 1e-4) {
+                    float gradFactor = smoothstep(uGradLow, uGradHigh, gradMag);
+                    alphaCorrected = mix(alphaCorrected, alphaCorrected * gradFactor, uGradWeight);
+                }
+
+                if (uShowOriginal && length(normal) > 1e-4) {
                     vec3 vDir = normalize(uCameraPos - pos);
                     tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir);
                 }
-                float ma = 1.0 - accum.a;
-                accum.rgb += ma * tfColor.a * tfColor.rgb;
-                accum.a += ma * tfColor.a;
+
+                if (uHasDiff && uShowDifference && abs(diffVal) > 0.01) {
+                    vec3 diffColor = diffVal > 0.0
+                        ? vec3(0.95, 0.08, 0.08)
+                        : vec3(0.08, 0.15, 0.95);
+                    float intensity = clamp(abs(diffVal) * 0.6, 0.0, 1.0) * uDiffOpacity;
+                    // Suppress original color proportionally so red/blue stay pure
+                    float suppress = intensity * 0.85;
+                    tfColor.rgb = tfColor.rgb * (1.0 - suppress) + diffColor * intensity;
+                    alphaCorrected = max(alphaCorrected, intensity * 0.35);
+                }
+
+                if (uShowOriginal || (uHasDiff && uShowDifference)) {
+                    float ma = 1.0 - accum.a;
+                    accum.rgb += ma * alphaCorrected * tfColor.rgb;
+                    accum.a += ma * alphaCorrected;
+                }
             }
         }
         t += uStepSize;

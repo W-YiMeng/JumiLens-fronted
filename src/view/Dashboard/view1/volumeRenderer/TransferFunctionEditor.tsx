@@ -354,6 +354,109 @@ const TransferFunctionEditor: React.FC = observer(() => {
           />
         </label>
       </div>
+      <div className="tf-grad-controls">
+        <div className="tf-grad-header">Gradient Weight (2D TF)</div>
+        <label>
+          Weight
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volumeStore.gradWeight}
+            onChange={(e) => volumeStore.setGradWeight(Number(e.target.value))}
+          />
+          <span>{volumeStore.gradWeight.toFixed(2)}</span>
+        </label>
+        <label>
+          Low
+          <input
+            type="range"
+            min={0.001}
+            max={0.2}
+            step={0.001}
+            value={volumeStore.gradLow}
+            onChange={(e) => volumeStore.setGradLow(Number(e.target.value))}
+          />
+          <span>{volumeStore.gradLow.toFixed(3)}</span>
+        </label>
+        <label>
+          High
+          <input
+            type="range"
+            min={0.005}
+            max={0.5}
+            step={0.005}
+            value={volumeStore.gradHigh}
+            onChange={(e) => volumeStore.setGradHigh(Number(e.target.value))}
+          />
+          <span>{volumeStore.gradHigh.toFixed(3)}</span>
+        </label>
+      </div>
+      <div className="tf-diff-controls">
+        <div className="tf-diff-header">Diff Layers</div>
+        <div className="tf-diff-toggles">
+          <label
+            className={`tf-diff-toggle${volumeStore.showOriginal ? ' active' : ''}`}
+            onClick={() => volumeStore.setShowOriginal(!volumeStore.showOriginal)}
+          >
+            <span className="tf-diff-toggle-swatch tf-diff-toggle-orig" />
+            Original
+          </label>
+          <label
+            className={`tf-diff-toggle${volumeStore.showDifference ? ' active' : ''}`}
+            onClick={() => volumeStore.setShowDifference(!volumeStore.showDifference)}
+          >
+            <span className="tf-diff-toggle-swatch tf-diff-toggle-diff" />
+            Difference
+          </label>
+        </div>
+        <label>
+          Diff Opacity
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volumeStore.diffOpacity}
+            onChange={(e) => volumeStore.setDiffOpacity(Number(e.target.value))}
+          />
+          <span>{volumeStore.diffOpacity.toFixed(2)}</span>
+        </label>
+        <label>
+          Category
+          <select
+            className="tf-cat-select"
+            value={volumeStore.categoryFilter}
+            onChange={(e) => volumeStore.setCategoryFilter(Number(e.target.value))}
+          >
+            <option value={-1}>All categories</option>
+            {volumeStore.classBoundaries.length >= 2 &&
+              Array.from(
+                { length: volumeStore.classBoundaries.length - 1 },
+                (_, i) => {
+                  const lo = volumeStore.classBoundaries[i];
+                  const hi = volumeStore.classBoundaries[i + 1];
+                  const names = [
+                    'Void/Background',
+                    'Cool Diffuse Gas',
+                    'Warm Gas',
+                    'Transition Zone',
+                    'Dense Structure',
+                    'High-Density Core',
+                    'Extreme Center',
+                  ];
+                  return (
+                    <option key={i} value={i}>
+                      Class {i}: [{lo.toFixed(2)}, {hi.toFixed(2)}){' '}
+                      {names[i] || ''}
+                    </option>
+                  );
+                }
+              )}
+          </select>
+        </label>
+      </div>
     </div>
   );
 });

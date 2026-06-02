@@ -12,6 +12,7 @@ export class VolumeScene {
   private scene: THREE.Scene;
   private material: THREE.ShaderMaterial;
   private volumeTexture: THREE.Data3DTexture | null = null;
+  private diffTexture: THREE.Data3DTexture | null = null;
   private tfTexture: THREE.DataTexture | null = null;
   private container: HTMLElement;
   private animFrameId: number | null = null;
@@ -57,6 +58,15 @@ export class VolumeScene {
         uBoxMin: { value: new THREE.Vector3(-0.5, -0.5, -0.5) },
         uBoxMax: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
         uStepSize: { value: 1.0 / 64 },
+        uStepRef: { value: 1.0 / 128 },
+        uGradLow: { value: 0.02 },
+        uGradHigh: { value: 0.15 },
+        uGradWeight: { value: 0.6 },
+        uDiffVolume: { value: null },
+        uHasDiff: { value: false },
+        uDiffOpacity: { value: 0.6 },
+        uShowOriginal: { value: true },
+        uShowDifference: { value: true },
       },
       depthTest: false,
       depthWrite: false,
@@ -161,6 +171,46 @@ export class VolumeScene {
     this.material.uniforms.uStepSize.value = stepSize;
   }
 
+  updateGradientParams(gradLow: number, gradHigh: number, gradWeight: number): void {
+    this.material.uniforms.uGradLow.value = gradLow;
+    this.material.uniforms.uGradHigh.value = gradHigh;
+    this.material.uniforms.uGradWeight.value = gradWeight;
+  }
+
+  loadDiffVolume(data: Float32Array | null): void {
+    if (this.diffTexture) {
+      this.diffTexture.dispose();
+      this.diffTexture = null;
+    }
+
+    if (data) {
+      const texture = new THREE.Data3DTexture(data, 128, 128, 128);
+      texture.format = THREE.RedFormat;
+      texture.type = THREE.FloatType;
+      texture.internalFormat = 'R32F';
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.wrapR = THREE.ClampToEdgeWrapping;
+      texture.unpackAlignment = 1;
+      texture.needsUpdate = true;
+
+      this.diffTexture = texture;
+      this.material.uniforms.uDiffVolume.value = texture;
+      this.material.uniforms.uHasDiff.value = true;
+    } else {
+      this.material.uniforms.uDiffVolume.value = null;
+      this.material.uniforms.uHasDiff.value = false;
+    }
+  }
+
+  setDiffParams(opacity: number, showOriginal: boolean, showDifference: boolean): void {
+    this.material.uniforms.uDiffOpacity.value = opacity;
+    this.material.uniforms.uShowOriginal.value = showOriginal;
+    this.material.uniforms.uShowDifference.value = showDifference;
+  }
+
   resize(width: number, height: number): void {
     this.renderer.setSize(width, height);
     const aspect = width / Math.max(height, 1);
@@ -203,6 +253,7 @@ export class VolumeScene {
     this.controls.dispose();
     this.renderer.dispose();
     if (this.volumeTexture) this.volumeTexture.dispose();
+    if (this.diffTexture) this.diffTexture.dispose();
     if (this.tfTexture) this.tfTexture.dispose();
     this.material.dispose();
     if (this.renderer.domElement.parentElement) {

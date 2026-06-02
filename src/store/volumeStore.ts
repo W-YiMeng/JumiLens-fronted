@@ -13,6 +13,20 @@ class VolumeStore {
   isLoading = false;
   stepSize = 1 / 64;
   densityScale = 1.0;
+  gradLow = 0.02;
+  gradHigh = 0.15;
+  gradWeight = 0.6;
+  referenceStep = 0;
+  comparisonSteps: number[] = [0];
+  diffEnabled = false;
+  showOriginal = true;
+  showDifference = true;
+  diffOpacity = 0.6;
+  categoryFilter = -1;
+  classBoundaries: number[] = [];
+  diffThumbnails = new Map<number, string>();
+  thumbnailVersion = 0;
+  sortedByChange: number[] = [];
 
   transferFunction: TFControlPoint[] = [
     { position: 0.0, color: [0.1, 0.0, 0.2], opacity: 0.0 },
@@ -29,9 +43,21 @@ class VolumeStore {
   private _dataMin = new Map<number, number>();
   private _dataMax = new Map<number, number>();
   private _playTimer: ReturnType<typeof setInterval> | null = null;
+  _refClassesCache: Uint8Array | null = null;
+  _diffDataCache = new Map<number, Float32Array>();
+  _diffStatsCache = new Map<number, { growthCount: number; declineCount: number }>();
 
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable(this, {
+      diffThumbnails: false,
+      _dataCache: false,
+      _dataMin: false,
+      _dataMax: false,
+      _playTimer: false,
+      _refClassesCache: false,
+      _diffDataCache: false,
+      _diffStatsCache: false,
+    });
   }
 
   setTimeStep = (step: number) => {
@@ -77,6 +103,117 @@ class VolumeStore {
 
   setDensityScale = (scale: number) => {
     this.densityScale = scale;
+  };
+
+  setGradLow = (value: number) => {
+    this.gradLow = value;
+  };
+
+  setGradHigh = (value: number) => {
+    this.gradHigh = value;
+  };
+
+  setGradWeight = (value: number) => {
+    this.gradWeight = value;
+  };
+
+  setReferenceStep = (step: number) => {
+    const clamped = Math.max(0, Math.min(99, Math.round(step)));
+    this.referenceStep = clamped;
+    // Ensure reference is always in the comparison list
+    if (!this.comparisonSteps.includes(clamped)) {
+      this.comparisonSteps.push(clamped);
+      this.comparisonSteps.sort((a, b) => a - b);
+    }
+    this._refClassesCache = null;
+    this._diffDataCache.clear();
+    this._diffStatsCache.clear();
+    this.diffThumbnails.clear();
+    this.sortedByChange = [];
+  };
+
+  addComparisonStep = (step: number) => {
+    const clamped = Math.max(0, Math.min(99, Math.round(step)));
+    if (!this.comparisonSteps.includes(clamped)) {
+      this.comparisonSteps.push(clamped);
+      this.comparisonSteps.sort((a, b) => a - b);
+    }
+  };
+
+  removeComparisonStep = (step: number) => {
+    if (step === this.referenceStep) return; // can't remove reference
+    this.comparisonSteps = this.comparisonSteps.filter((s) => s !== step);
+    this._diffDataCache.delete(step);
+    this._diffStatsCache.delete(step);
+    this.diffThumbnails.delete(step);
+    this.sortedByChange = [];
+  };
+
+  setDiffEnabled = (enabled: boolean) => {
+    this.diffEnabled = enabled;
+  };
+
+  setShowOriginal = (show: boolean) => {
+    this.showOriginal = show;
+  };
+
+  setShowDifference = (show: boolean) => {
+    this.showDifference = show;
+  };
+
+  setDiffOpacity = (opacity: number) => {
+    this.diffOpacity = Math.max(0, Math.min(1, opacity));
+  };
+
+  setCategoryFilter = (filter: number) => {
+    this.categoryFilter = filter;
+    this._refClassesCache = null;
+    this._diffDataCache.clear();
+    this._diffStatsCache.clear();
+    // Note: don't clear diffThumbnails — they regenerate lazily with the new filter
+    this.sortedByChange = [];
+  };
+
+  setClassBoundaries = (boundaries: number[]) => {
+    this.classBoundaries = boundaries;
+    this._refClassesCache = null;
+    this._diffDataCache.clear();
+    this._diffStatsCache.clear();
+    this.diffThumbnails.clear();
+    this.sortedByChange = [];
+  };
+
+  getCachedDiffData = (step: number): Float32Array | undefined => {
+    return this._diffDataCache.get(step);
+  };
+
+  cacheDiffData = (step: number, data: Float32Array) => {
+    this._diffDataCache.set(step, data);
+  };
+
+  getCachedDiffStats = (
+    step: number
+  ): { growthCount: number; declineCount: number } | undefined => {
+    return this._diffStatsCache.get(step);
+  };
+
+  cacheDiffStats = (
+    step: number,
+    stats: { growthCount: number; declineCount: number }
+  ) => {
+    this._diffStatsCache.set(step, stats);
+  };
+
+  setDiffThumbnail = (step: number, dataUrl: string) => {
+    this.diffThumbnails.set(step, dataUrl);
+  };
+
+  setSortedByChange = (steps: number[]) => {
+    this.sortedByChange = steps;
+  };
+
+  bumpThumbnailVersion = () => {
+    this.thumbnailVersion++;
   };
 
   setTransferFunction = (points: TFControlPoint[]) => {
