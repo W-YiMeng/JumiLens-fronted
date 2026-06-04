@@ -24,19 +24,28 @@
   }
 }
 
+// Time Controls overlay
 .time-controls {
   position: absolute;
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(6px);
   padding: 10px 20px;
   border-radius: 8px;
   z-index: 50;
+  min-width: 520px;
+
+  .time-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
 
   .play-btn {
     cursor: pointer;
@@ -59,7 +68,8 @@
 
   .time-slider {
     -webkit-appearance: none;
-    width: 280px;
+    appearance: none;
+    width: 360px;
     height: 4px;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.25);
@@ -68,6 +78,7 @@
 
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
+      appearance: none;
       width: 14px;
       height: 14px;
       border-radius: 50%;
@@ -99,8 +110,161 @@
     min-width: 80px;
     text-align: center;
   }
+
+  .thumb-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .thumb-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .thumb-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    span {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 10px;
+      min-width: 62px;
+    }
+
+    select {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+
+      option {
+        background: #222;
+        color: #fff;
+      }
+    }
+
+    .thumb-btn {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      &.active {
+        background: rgba(80, 180, 255, 0.3);
+        border-color: rgba(80, 180, 255, 0.6);
+      }
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 90px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      outline: none;
+      cursor: pointer;
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #fff;
+      }
+    }
+
+    .thumb-range {
+      min-width: 70px;
+      text-align: right;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .thumb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .thumb-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    width: 60px;
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .thumbs {
+    display: flex;
+    gap: 6px;
+  }
+
+  .thumb {
+    width: 110px;
+    height: 54px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+    .thumb-step {
+      position: absolute;
+      bottom: 4px;
+      right: 6px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  .thumb:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  .thumb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: var(--intensity, 0.2);
+    mix-blend-mode: screen;
+  }
+
+  .thumb.low::after {
+    background: radial-gradient(circle at 30% 40%, rgba(80, 180, 255, 1), rgba(20, 40, 90, 0.3));
+  }
+
+  .thumb.high::after {
+    background: radial-gradient(circle at 35% 45%, rgba(255, 150, 90, 1), rgba(120, 20, 0, 0.4));
+  }
 }
 
+// Transfer Function Editor overlay
 .tf-editor {
   position: absolute;
   top: 12px;
@@ -155,6 +319,7 @@
 
       input[type="range"] {
         -webkit-appearance: none;
+        appearance: none;
         flex: 1;
         height: 3px;
         border-radius: 2px;
@@ -164,6 +329,7 @@
 
         &::-webkit-slider-thumb {
           -webkit-appearance: none;
+          appearance: none;
           width: 10px;
           height: 10px;
           border-radius: 50%;
@@ -173,6 +339,7 @@
 
       input[type="color"] {
         -webkit-appearance: none;
+        appearance: none;
         width: 28px;
         height: 18px;
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -211,6 +378,7 @@
 
     input[type="range"] {
       -webkit-appearance: none;
+      appearance: none;
       width: 60px;
       height: 3px;
       border-radius: 2px;
@@ -220,10 +388,66 @@
 
       &::-webkit-slider-thumb {
         -webkit-appearance: none;
+        appearance: none;
         width: 10px;
         height: 10px;
         border-radius: 50%;
         background: #fff;
+      }
+    }
+  }
+
+  .tf-lighting {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+
+    .tf-section-title {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .tf-light-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+
+      label {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 10px;
+        width: 52px;
+      }
+
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        flex: 1;
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.25);
+        outline: none;
+        cursor: pointer;
+
+        &::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #fff;
+        }
+      }
+
+      span {
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 10px;
+        min-width: 34px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
       }
     }
   }

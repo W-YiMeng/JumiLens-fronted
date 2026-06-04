@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { volumeStore } from '@/store/volumeStore';
+import { volumeStore } from '../../../../store/volumeStore';
 
 const TF_RES = 256;
 
@@ -22,6 +22,7 @@ const TransferFunctionEditor: React.FC = observer(() => {
     const points = volumeStore.transferFunction;
     const w = canvas.width;
 
+    // --- Top section: pure color gradient (ignoring opacity) ---
     for (let x = 0; x < w; x++) {
       const t = x / (w - 1);
       let cr = 0, cg = 0, cb = 0, ca = 0;
@@ -48,12 +49,15 @@ const TransferFunctionEditor: React.FC = observer(() => {
         }
       }
 
+      // Draw color bar (full saturation, no alpha blending)
       const r = Math.round(cr * 255);
       const g = Math.round(cg * 255);
       const b = Math.round(cb * 255);
       ctx.fillStyle = `rgb(${r},${g},${b})`;
       ctx.fillRect(x, 0, 1, COLOR_H);
 
+      // Draw opacity bar (grayscale: black=transparent, white=opaque)
+      // Over checkerboard so transparent areas are visible
       for (let py = COLOR_H; py < CANVAS_H; py++) {
         const isChecker = (Math.floor(x / 4) + Math.floor((py - COLOR_H) / 4)) % 2 === 0;
         const bg = isChecker ? 170 : 210;
@@ -66,6 +70,7 @@ const TransferFunctionEditor: React.FC = observer(() => {
       }
     }
 
+    // Separator line
     ctx.strokeStyle = 'rgba(255,255,255,0.3)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -73,16 +78,19 @@ const TransferFunctionEditor: React.FC = observer(() => {
     ctx.lineTo(w, COLOR_H);
     ctx.stroke();
 
+    // Labels
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
     ctx.font = '8px sans-serif';
     ctx.fillText('Color', 4, 9);
     ctx.fillText('Opacity', 4, COLOR_H + 9);
 
+    // Draw control point markers spanning both bars
     for (let i = 0; i < points.length; i++) {
       const pt = points[i];
       const px = pt.position * w;
       const isSelected = i === selectedIndex;
 
+      // Vertical line through both bars
       ctx.strokeStyle = isSelected ? 'rgba(255,221,0,0.6)' : 'rgba(255,255,255,0.5)';
       ctx.lineWidth = isSelected ? 1.5 : 0.5;
       ctx.setLineDash(isSelected ? [] : [3, 3]);
@@ -92,6 +100,7 @@ const TransferFunctionEditor: React.FC = observer(() => {
       ctx.stroke();
       ctx.setLineDash([]);
 
+      // Dot in color bar
       if (isSelected) {
         ctx.beginPath();
         ctx.arc(px, COLOR_H / 2, 6, 0, Math.PI * 2);
@@ -135,6 +144,7 @@ const TransferFunctionEditor: React.FC = observer(() => {
     []
   );
 
+  // Click to select
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const target = getClickTarget(e.clientX);
@@ -151,6 +161,7 @@ const TransferFunctionEditor: React.FC = observer(() => {
     [getClickTarget]
   );
 
+  // Drag to move control point
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (!draggingRef.current || selectedIndex === null) return;
@@ -167,10 +178,12 @@ const TransferFunctionEditor: React.FC = observer(() => {
     [selectedIndex]
   );
 
+  // Stop dragging
   const handleMouseUp = useCallback(() => {
     draggingRef.current = false;
   }, []);
 
+  // Edit selected control point
   const handleColorChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (selectedIndex === null) return;
@@ -210,6 +223,7 @@ const TransferFunctionEditor: React.FC = observer(() => {
     [selectedIndex]
   );
 
+  // Add / Delete control points
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
@@ -219,6 +233,7 @@ const TransferFunctionEditor: React.FC = observer(() => {
       const t = x / rect.width;
 
       const target = getClickTarget(e.clientX);
+      // If near existing point, delete it (keep at least 2)
       if (target && target.dist < 0.03) {
         if (volumeStore.transferFunction.length <= 2) return;
         const points = volumeStore.transferFunction.filter((_, i) => i !== target.index);
@@ -227,7 +242,9 @@ const TransferFunctionEditor: React.FC = observer(() => {
         return;
       }
 
+      // Add new point with interpolated color
       const points = volumeStore.transferFunction;
+      // Find color at t
       let insertColor: [number, number, number] = [1, 1, 1];
       let insertOpacity = 0.5;
       if (points.length > 0) {
@@ -293,6 +310,7 @@ const TransferFunctionEditor: React.FC = observer(() => {
         onDoubleClick={handleDoubleClick}
       />
 
+      {/* Selected point editor */}
       {selectedPoint && (
         <div className="tf-point-editor">
           <div className="tf-point-row">
@@ -353,6 +371,46 @@ const TransferFunctionEditor: React.FC = observer(() => {
             onChange={(e) => volumeStore.setDensityScale(Number(e.target.value))}
           />
         </label>
+      </div>
+
+      <div className="tf-lighting">
+        <div className="tf-section-title">Lighting</div>
+        <div className="tf-light-row">
+          <label>Azimuth</label>
+          <input
+            type="range"
+            min={0}
+            max={360}
+            step={1}
+            value={volumeStore.lightAzimuth}
+            onChange={(e) => volumeStore.setLightAzimuth(Number(e.target.value))}
+          />
+          <span>{Math.round(volumeStore.lightAzimuth)}°</span>
+        </div>
+        <div className="tf-light-row">
+          <label>Elevation</label>
+          <input
+            type="range"
+            min={-20}
+            max={80}
+            step={1}
+            value={volumeStore.lightElevation}
+            onChange={(e) => volumeStore.setLightElevation(Number(e.target.value))}
+          />
+          <span>{Math.round(volumeStore.lightElevation)}°</span>
+        </div>
+        <div className="tf-light-row">
+          <label>Intensity</label>
+          <input
+            type="range"
+            min={0.2}
+            max={2.5}
+            step={0.1}
+            value={volumeStore.lightIntensity}
+            onChange={(e) => volumeStore.setLightIntensity(Number(e.target.value))}
+          />
+          <span>{volumeStore.lightIntensity.toFixed(1)}</span>
+        </div>
       </div>
     </div>
   );

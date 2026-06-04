@@ -6,6 +6,15 @@ export interface TFControlPoint {
   opacity: number;
 }
 
+export interface ThumbnailStats {
+  low: number;
+  high: number;
+  bins: number[];
+}
+
+export type ThumbnailView = 'current' | 'top' | 'front' | 'side';
+export type ThumbnailCompareMode = 'off' | 'prev' | 'ref';
+
 class VolumeStore {
   currentStep = 0;
   isPlaying = false;
@@ -13,6 +22,20 @@ class VolumeStore {
   isLoading = false;
   stepSize = 1 / 64;
   densityScale = 1.0;
+  lightAzimuth = 45; // degrees
+  lightElevation = 30; // degrees
+  lightIntensity = 1.0;
+
+  thumbnailStats = new Map<number, ThumbnailStats>();
+  thumbnailImages = new Map<string, string>();
+  thumbnailSteps = [0, 20, 40, 60, 80, 99];
+  thumbnailLowRange: [number, number] = [0.05, 0.25];
+  thumbnailHighRange: [number, number] = [0.6, 0.9];
+  thumbnailView: ThumbnailView = 'current';
+  thumbnailCompareMode: ThumbnailCompareMode = 'off';
+  thumbnailCompareRefIndex = 1;
+  thumbnailCompareOverlay = true;
+  thumbnailRefreshToken = 0;
 
   transferFunction: TFControlPoint[] = [
     { position: 0.0, color: [0.1, 0.0, 0.2], opacity: 0.0 },
@@ -79,8 +102,80 @@ class VolumeStore {
     this.densityScale = scale;
   };
 
+  setLightAzimuth = (deg: number) => {
+    this.lightAzimuth = deg;
+  };
+
+  setLightElevation = (deg: number) => {
+    this.lightElevation = deg;
+  };
+
+  setLightIntensity = (v: number) => {
+    this.lightIntensity = v;
+  };
+
   setTransferFunction = (points: TFControlPoint[]) => {
     this.transferFunction = [...points].sort((a, b) => a.position - b.position);
+  };
+
+  setThumbnailStats = (step: number, stats: ThumbnailStats) => {
+    this.thumbnailStats.set(step, stats);
+  };
+
+  getThumbnailStats = (step: number): ThumbnailStats | undefined => {
+    return this.thumbnailStats.get(step);
+  };
+
+  private buildThumbnailKey = (step: number, type: 'low' | 'high') => {
+    const range = type === 'low' ? this.thumbnailLowRange : this.thumbnailHighRange;
+    const compareFlag = `${this.thumbnailCompareMode}-r${this.thumbnailCompareRefIndex}-${this.thumbnailCompareOverlay ? 'o1' : 'o0'}`;
+    return `${step}-${type}-${this.thumbnailView}-${range[0].toFixed(2)}-${range[1].toFixed(2)}-${compareFlag}`;
+  };
+
+  setThumbnailImage = (step: number, type: 'low' | 'high', dataUrl: string) => {
+    const key = this.buildThumbnailKey(step, type);
+    this.thumbnailImages.set(key, dataUrl);
+  };
+
+  getThumbnailImage = (step: number, type: 'low' | 'high'): string | undefined => {
+    const key = this.buildThumbnailKey(step, type);
+    return this.thumbnailImages.get(key);
+  };
+
+  setThumbnailLowRange = (min: number, max: number) => {
+    this.thumbnailLowRange = [Math.min(min, max), Math.max(min, max)];
+  };
+
+  setThumbnailHighRange = (min: number, max: number) => {
+    this.thumbnailHighRange = [Math.min(min, max), Math.max(min, max)];
+  };
+
+  setThumbnailView = (view: ThumbnailView) => {
+    this.thumbnailView = view;
+  };
+
+  setThumbnailCompareMode = (mode: ThumbnailCompareMode) => {
+    this.thumbnailCompareMode = mode;
+  };
+
+  setThumbnailCompareRefIndex = (idx: number) => {
+    this.thumbnailCompareRefIndex = Math.max(0, Math.min(this.thumbnailSteps.length - 1, idx));
+  };
+
+  toggleThumbnailCompareOverlay = () => {
+    this.thumbnailCompareOverlay = !this.thumbnailCompareOverlay;
+  };
+
+  refreshThumbnails = () => {
+    this.thumbnailRefreshToken += 1;
+    if (this.thumbnailView === 'current') {
+      const keys = Array.from(this.thumbnailImages.keys());
+      for (const key of keys) {
+        if (key.includes('-current-')) {
+          this.thumbnailImages.delete(key);
+        }
+      }
+    }
   };
 
   getCachedData = (step: number): Float32Array | undefined => {
