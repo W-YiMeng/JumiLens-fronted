@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import vertShader from './shaders/volume.vert.glsl';
 import fragShader from './shaders/volume.frag.glsl';
-import { volumeStore, type TFControlPoint } from '@/store/volumeStore';
+import { volumeStore, type TFControlPoint } from '../../../../store/volumeStore';
 
 export class VolumeScene {
   private renderer: THREE.WebGLRenderer;
@@ -58,6 +58,7 @@ export class VolumeScene {
         uBoxMin: { value: new THREE.Vector3(-0.5, -0.5, -0.5) },
         uBoxMax: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
         uStepSize: { value: 1.0 / 64 },
+        // ── Main diff / gradient uniforms ──
         uStepRef: { value: 1.0 / 128 },
         uGradLow: { value: 0.02 },
         uGradHigh: { value: 0.15 },
@@ -68,6 +69,18 @@ export class VolumeScene {
         uDiffBaseOpacity: { value: 0.08 },
         uShowOriginal: { value: true },
         uShowDifference: { value: true },
+        // ── YG lighting / preview uniforms ──
+        uDensityScale: { value: volumeStore.densityScale },
+        uLightDir: { value: new THREE.Vector3(0.6, 0.6, -0.5).normalize() },
+        uLightIntensity: { value: volumeStore.lightIntensity },
+        uPreviewMode: { value: 0 },
+        uPreviewRange: { value: new THREE.Vector2(0.0, 1.0) },
+        uPreviewColor: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
+        uVolumeB: { value: null },
+        uPreviewColorPos: { value: new THREE.Vector3(1.0, 0.3, 0.2) },
+        uPreviewColorNeg: { value: new THREE.Vector3(0.2, 0.6, 1.0) },
+        uPreviewDiffScale: { value: 3.0 },
+        uPreviewOverlay: { value: 1 },
       },
       depthTest: false,
       depthWrite: false,
@@ -80,6 +93,8 @@ export class VolumeScene {
     this.scene.add(quadMesh);
 
     this.buildTFTexture(volumeStore.transferFunction);
+    this.updateLighting(volumeStore.lightAzimuth, volumeStore.lightElevation, volumeStore.lightIntensity);
+    this.updateDensityScale(volumeStore.densityScale);
     this.startLoop();
   }
 
@@ -88,6 +103,12 @@ export class VolumeScene {
       this.volumeTexture.dispose();
     }
 
+    const texture = this.createVolumeTexture(data);
+    this.volumeTexture = texture;
+    this.material.uniforms.uVolume.value = texture;
+  }
+
+  private createVolumeTexture(data: Float32Array): THREE.Data3DTexture {
     const texture = new THREE.Data3DTexture(data, 128, 128, 128);
     texture.format = THREE.RedFormat;
     texture.type = THREE.FloatType;
@@ -99,9 +120,7 @@ export class VolumeScene {
     texture.wrapR = THREE.ClampToEdgeWrapping;
     texture.unpackAlignment = 1;
     texture.needsUpdate = true;
-
-    this.volumeTexture = texture;
-    this.material.uniforms.uVolume.value = texture;
+    return texture;
   }
 
   buildTFTexture(controlPoints: TFControlPoint[]): void {
@@ -172,12 +191,14 @@ export class VolumeScene {
     this.material.uniforms.uStepSize.value = stepSize;
   }
 
+  // ── Main: gradient params ──
   updateGradientParams(gradLow: number, gradHigh: number, gradWeight: number): void {
     this.material.uniforms.uGradLow.value = gradLow;
     this.material.uniforms.uGradHigh.value = gradHigh;
     this.material.uniforms.uGradWeight.value = gradWeight;
   }
 
+  // ── Main: diff volume ──
   loadDiffVolume(data: Float32Array | null): void {
     if (this.diffTexture) {
       this.diffTexture.dispose();
@@ -214,6 +235,269 @@ export class VolumeScene {
 
   setDiffBaseOpacity(opacity: number): void {
     this.material.uniforms.uDiffBaseOpacity.value = opacity;
+  }
+
+  // ── YG: density scale ──
+  updateDensityScale(scale: number): void {
+    this.material.uniforms.uDensityScale.value = scale;
+  }
+
+  // ── YG: lighting ──
+  updateLighting(azimuthDeg: number, elevationDeg: number, intensity: number): void {
+    const az = THREE.MathUtils.degToRad(azimuthDeg);
+    const el = THREE.MathUtils.degToRad(elevationDeg);
+    const dir = new THREE.Vector3(
+      Math.cos(el) * Math.cos(az),
+      Math.sin(el),
+      Math.cos(el) * Math.sin(az)
+    ).normalize();
+    this.material.uniforms.uLightDir.value.copy(dir);
+    this.material.uniforms.uLightIntensity.value = intensity;
+  }
+
+  // ── YG: preview thumbnail (single volume highlight) ──
+  renderThumbnail(
+    data: Float32Array,
+    range: [number, number],
+    previewColor: [number, number, number],
+    view: 'current' | 'top' | 'front' | 'side',
+    size: { width: number; height: number } = { width: 120, height: 60 }
+  ): string {
+    const { width, height } = size;
+    const renderTarget = new THREE.WebGLRenderTarget(width, height, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.UnsignedByteType,
+    });
+
+    const prevVolume = this.material.uniforms.uVolume.value as THREE.Data3DTexture | null;
+    const prevVolumeB = this.material.uniforms.uVolumeB.value as THREE.Data3DTexture | null;
+    const prevStep = this.material.uniforms.uStepSize.value as number;
+    const prevPreviewMode = this.material.uniforms.uPreviewMode.value as number;
+    const prevRange = this.material.uniforms.uPreviewRange.value.clone();
+    const prevColor = this.material.uniforms.uPreviewColor.value.clone();
+    const prevCameraPos = this.material.uniforms.uCameraPos.value.clone();
+    const prevInvView = this.material.uniforms.uInvViewMatrix.value.clone();
+    const prevInvProj = this.material.uniforms.uInvProjMatrix.value.clone();
+
+    const prevCamPos = this.perspCamera.position.clone();
+    const prevCamQuat = this.perspCamera.quaternion.clone();
+    const prevCamUp = this.perspCamera.up.clone();
+
+    const tempTexture = this.createVolumeTexture(data);
+    this.material.uniforms.uVolume.value = tempTexture;
+    this.material.uniforms.uVolumeB.value = null;
+    this.material.uniforms.uPreviewMode.value = 1;
+    this.material.uniforms.uPreviewRange.value.set(range[0], range[1]);
+    this.material.uniforms.uPreviewColor.value.set(
+      previewColor[0],
+      previewColor[1],
+      previewColor[2]
+    );
+    this.material.uniforms.uStepSize.value = Math.min(prevStep, 1.0 / 96);
+
+    const cam = this.perspCamera;
+    if (view === 'top') {
+      cam.position.set(0, 2.0, 0);
+      cam.up.set(0, 0, -1);
+      cam.lookAt(0, 0, 0);
+    } else if (view === 'front') {
+      cam.position.set(0, 0, 2.0);
+      cam.up.set(0, 1, 0);
+      cam.lookAt(0, 0, 0);
+    } else if (view === 'side') {
+      cam.position.set(2.0, 0, 0);
+      cam.up.set(0, 1, 0);
+      cam.lookAt(0, 0, 0);
+    } else {
+      cam.position.copy(prevCamPos);
+      cam.quaternion.copy(prevCamQuat);
+      cam.up.copy(prevCamUp);
+    }
+    cam.updateMatrixWorld();
+    cam.updateProjectionMatrix();
+
+    this.material.uniforms.uCameraPos.value.copy(cam.position);
+    this.material.uniforms.uInvViewMatrix.value.copy(cam.matrixWorld);
+    this.material.uniforms.uInvProjMatrix.value.copy(cam.projectionMatrixInverse);
+
+    const prevTarget = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(renderTarget);
+    this.renderer.render(this.scene, this.orthoCamera);
+
+    const pixels = new Uint8Array(width * height * 4);
+    this.renderer.readRenderTargetPixels(renderTarget, 0, 0, width, height, pixels);
+    this.renderer.setRenderTarget(prevTarget);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const imageData = ctx.createImageData(width, height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const src = (x + (height - 1 - y) * width) * 4;
+          const dst = (x + y * width) * 4;
+          imageData.data[dst] = pixels[src];
+          imageData.data[dst + 1] = pixels[src + 1];
+          imageData.data[dst + 2] = pixels[src + 2];
+          imageData.data[dst + 3] = 255;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    const dataUrl = canvas.toDataURL('image/png');
+
+    renderTarget.dispose();
+    tempTexture.dispose();
+
+    this.material.uniforms.uVolume.value = prevVolume;
+    this.material.uniforms.uVolumeB.value = prevVolumeB;
+    this.material.uniforms.uStepSize.value = prevStep;
+    this.material.uniforms.uPreviewMode.value = prevPreviewMode;
+    this.material.uniforms.uPreviewRange.value.copy(prevRange);
+    this.material.uniforms.uPreviewColor.value.copy(prevColor);
+    this.material.uniforms.uCameraPos.value.copy(prevCameraPos);
+    this.material.uniforms.uInvViewMatrix.value.copy(prevInvView);
+    this.material.uniforms.uInvProjMatrix.value.copy(prevInvProj);
+
+    this.perspCamera.position.copy(prevCamPos);
+    this.perspCamera.quaternion.copy(prevCamQuat);
+    this.perspCamera.up.copy(prevCamUp);
+    this.perspCamera.updateMatrixWorld();
+
+    return dataUrl;
+  }
+
+  // ── YG: preview thumbnail (A-B diff) ──
+  renderThumbnailDiff(
+    dataA: Float32Array,
+    dataB: Float32Array,
+    range: [number, number],
+    view: 'current' | 'top' | 'front' | 'side',
+    overlayBase: boolean,
+    size: { width: number; height: number } = { width: 120, height: 60 }
+  ): string {
+    const { width, height } = size;
+    const renderTarget = new THREE.WebGLRenderTarget(width, height, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.UnsignedByteType,
+    });
+
+    const prevVolume = this.material.uniforms.uVolume.value as THREE.Data3DTexture | null;
+    const prevVolumeB = this.material.uniforms.uVolumeB.value as THREE.Data3DTexture | null;
+    const prevStep = this.material.uniforms.uStepSize.value as number;
+    const prevPreviewMode = this.material.uniforms.uPreviewMode.value as number;
+    const prevRange = this.material.uniforms.uPreviewRange.value.clone();
+    const prevColor = this.material.uniforms.uPreviewColor.value.clone();
+    const prevColorPos = this.material.uniforms.uPreviewColorPos.value.clone();
+    const prevColorNeg = this.material.uniforms.uPreviewColorNeg.value.clone();
+    const prevDiffScale = this.material.uniforms.uPreviewDiffScale.value as number;
+    const prevOverlay = this.material.uniforms.uPreviewOverlay.value as number;
+    const prevCameraPos = this.material.uniforms.uCameraPos.value.clone();
+    const prevInvView = this.material.uniforms.uInvViewMatrix.value.clone();
+    const prevInvProj = this.material.uniforms.uInvProjMatrix.value.clone();
+
+    const prevCamPos = this.perspCamera.position.clone();
+    const prevCamQuat = this.perspCamera.quaternion.clone();
+    const prevCamUp = this.perspCamera.up.clone();
+
+    const textureA = this.createVolumeTexture(dataA);
+    const textureB = this.createVolumeTexture(dataB);
+    this.material.uniforms.uVolume.value = textureA;
+    this.material.uniforms.uVolumeB.value = textureB;
+    this.material.uniforms.uPreviewMode.value = 2;
+    this.material.uniforms.uPreviewRange.value.set(range[0], range[1]);
+    this.material.uniforms.uPreviewColor.value.set(1.0, 1.0, 1.0);
+    this.material.uniforms.uPreviewColorPos.value.set(1.0, 0.3, 0.2);
+    this.material.uniforms.uPreviewColorNeg.value.set(0.2, 0.6, 1.0);
+    this.material.uniforms.uPreviewDiffScale.value = 6.0;
+    this.material.uniforms.uPreviewOverlay.value = overlayBase ? 1 : 0;
+    this.material.uniforms.uStepSize.value = Math.min(prevStep, 1.0 / 96);
+
+    const cam = this.perspCamera;
+    if (view === 'top') {
+      cam.position.set(0, 2.0, 0);
+      cam.up.set(0, 0, -1);
+      cam.lookAt(0, 0, 0);
+    } else if (view === 'front') {
+      cam.position.set(0, 0, 2.0);
+      cam.up.set(0, 1, 0);
+      cam.lookAt(0, 0, 0);
+    } else if (view === 'side') {
+      cam.position.set(2.0, 0, 0);
+      cam.up.set(0, 1, 0);
+      cam.lookAt(0, 0, 0);
+    } else {
+      cam.position.copy(prevCamPos);
+      cam.quaternion.copy(prevCamQuat);
+      cam.up.copy(prevCamUp);
+    }
+    cam.updateMatrixWorld();
+    cam.updateProjectionMatrix();
+
+    this.material.uniforms.uCameraPos.value.copy(cam.position);
+    this.material.uniforms.uInvViewMatrix.value.copy(cam.matrixWorld);
+    this.material.uniforms.uInvProjMatrix.value.copy(cam.projectionMatrixInverse);
+
+    const prevTarget = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(renderTarget);
+    this.renderer.render(this.scene, this.orthoCamera);
+
+    const pixels = new Uint8Array(width * height * 4);
+    this.renderer.readRenderTargetPixels(renderTarget, 0, 0, width, height, pixels);
+    this.renderer.setRenderTarget(prevTarget);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const imageData = ctx.createImageData(width, height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const src = (x + (height - 1 - y) * width) * 4;
+          const dst = (x + y * width) * 4;
+          imageData.data[dst] = pixels[src];
+          imageData.data[dst + 1] = pixels[src + 1];
+          imageData.data[dst + 2] = pixels[src + 2];
+          imageData.data[dst + 3] = 255;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    const dataUrl = canvas.toDataURL('image/png');
+
+    renderTarget.dispose();
+    textureA.dispose();
+    textureB.dispose();
+
+    this.material.uniforms.uVolume.value = prevVolume;
+    this.material.uniforms.uVolumeB.value = prevVolumeB;
+    this.material.uniforms.uStepSize.value = prevStep;
+    this.material.uniforms.uPreviewMode.value = prevPreviewMode;
+    this.material.uniforms.uPreviewRange.value.copy(prevRange);
+    this.material.uniforms.uPreviewColor.value.copy(prevColor);
+    this.material.uniforms.uPreviewColorPos.value.copy(prevColorPos);
+    this.material.uniforms.uPreviewColorNeg.value.copy(prevColorNeg);
+    this.material.uniforms.uPreviewDiffScale.value = prevDiffScale;
+    this.material.uniforms.uPreviewOverlay.value = prevOverlay;
+    this.material.uniforms.uCameraPos.value.copy(prevCameraPos);
+    this.material.uniforms.uInvViewMatrix.value.copy(prevInvView);
+    this.material.uniforms.uInvProjMatrix.value.copy(prevInvProj);
+
+    this.perspCamera.position.copy(prevCamPos);
+    this.perspCamera.quaternion.copy(prevCamQuat);
+    this.perspCamera.up.copy(prevCamUp);
+    this.perspCamera.updateMatrixWorld();
+
+    return dataUrl;
   }
 
   resize(width: number, height: number): void {

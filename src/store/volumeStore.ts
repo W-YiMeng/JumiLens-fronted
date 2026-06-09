@@ -6,6 +6,15 @@ export interface TFControlPoint {
   opacity: number;
 }
 
+export interface ThumbnailStats {
+  low: number;
+  high: number;
+  bins: number[];
+}
+
+export type ThumbnailView = 'current' | 'top' | 'front' | 'side';
+export type ThumbnailCompareMode = 'off' | 'prev' | 'ref';
+
 class VolumeStore {
   currentStep = 0;
   isPlaying = false;
@@ -13,6 +22,8 @@ class VolumeStore {
   isLoading = false;
   stepSize = 1 / 64;
   densityScale = 1.0;
+
+  // ── Main: gradient / diff / classification ──
   gradLow = 0.02;
   gradHigh = 0.15;
   gradWeight = 0.6;
@@ -31,6 +42,22 @@ class VolumeStore {
   diffThumbnails = new Map<number, string>();
   thumbnailVersion = 0;
   sortedByChange: number[] = [];
+
+  // ── YG: lighting / thumbnail analysis ──
+  lightAzimuth = 45; // degrees
+  lightElevation = 30; // degrees
+  lightIntensity = 1.0;
+
+  thumbnailStats = new Map<number, ThumbnailStats>();
+  thumbnailImages = new Map<string, string>();
+  thumbnailSteps = [0, 20, 40, 60, 80, 99];
+  thumbnailLowRange: [number, number] = [0.05, 0.25];
+  thumbnailHighRange: [number, number] = [0.6, 0.9];
+  thumbnailView: ThumbnailView = 'current';
+  thumbnailCompareMode: ThumbnailCompareMode = 'off';
+  thumbnailCompareRefIndex = 1;
+  thumbnailCompareOverlay = true;
+  thumbnailRefreshToken = 0;
 
   transferFunction: TFControlPoint[] = [
     { position: 0.0, color: [0.1, 0.0, 0.2], opacity: 0.0 },
@@ -109,6 +136,7 @@ class VolumeStore {
     this.densityScale = scale;
   };
 
+  // ── Main: gradient setters ──
   setGradLow = (value: number) => {
     this.gradLow = value;
   };
@@ -121,10 +149,10 @@ class VolumeStore {
     this.gradWeight = value;
   };
 
+  // ── Main: reference step / comparison ──
   setReferenceStep = (step: number) => {
     const clamped = Math.max(0, Math.min(99, Math.round(step)));
     this.referenceStep = clamped;
-    // Ensure reference is always in the comparison list
     if (!this.comparisonSteps.includes(clamped)) {
       this.comparisonSteps.push(clamped);
       this.comparisonSteps.sort((a, b) => a - b);
@@ -145,7 +173,7 @@ class VolumeStore {
   };
 
   removeComparisonStep = (step: number) => {
-    if (step === this.referenceStep) return; // can't remove reference
+    if (step === this.referenceStep) return;
     this.comparisonSteps = this.comparisonSteps.filter((s) => s !== step);
     this._diffDataCache.delete(step);
     this._diffStatsCache.delete(step);
@@ -178,7 +206,6 @@ class VolumeStore {
     this._refClassesCache = null;
     this._diffDataCache.clear();
     this._diffStatsCache.clear();
-    // Note: don't clear diffThumbnails — they regenerate lazily with the new filter
     this.sortedByChange = [];
   };
 
@@ -186,7 +213,6 @@ class VolumeStore {
     const clamped = Math.max(0.1, Math.min(49, pct));
     if (clamped !== this.lowPercentile) {
       this.lowPercentile = clamped;
-      // Ensure low < high
       if (this.lowPercentile >= this.highPercentile) {
         this.highPercentile = Math.min(99.9, this.lowPercentile + 1);
       }
@@ -202,7 +228,6 @@ class VolumeStore {
     const clamped = Math.max(51, Math.min(99.9, pct));
     if (clamped !== this.highPercentile) {
       this.highPercentile = clamped;
-      // Ensure high > low
       if (this.highPercentile <= this.lowPercentile) {
         this.lowPercentile = Math.max(0.1, this.highPercentile - 1);
       }
@@ -223,6 +248,7 @@ class VolumeStore {
     this.sortedByChange = [];
   };
 
+  // ── Main: diff cache ──
   getCachedDiffData = (step: number): Float32Array | undefined => {
     return this._diffDataCache.get(step);
   };
@@ -256,8 +282,82 @@ class VolumeStore {
     this.thumbnailVersion++;
   };
 
+  // ── YG: lighting setters ──
+  setLightAzimuth = (deg: number) => {
+    this.lightAzimuth = deg;
+  };
+
+  setLightElevation = (deg: number) => {
+    this.lightElevation = deg;
+  };
+
+  setLightIntensity = (v: number) => {
+    this.lightIntensity = v;
+  };
+
+  // ── YG: thumbnail analysis ──
   setTransferFunction = (points: TFControlPoint[]) => {
     this.transferFunction = [...points].sort((a, b) => a.position - b.position);
+  };
+
+  setThumbnailStats = (step: number, stats: ThumbnailStats) => {
+    this.thumbnailStats.set(step, stats);
+  };
+
+  getThumbnailStats = (step: number): ThumbnailStats | undefined => {
+    return this.thumbnailStats.get(step);
+  };
+
+  private buildThumbnailKey = (step: number, type: 'low' | 'high') => {
+    const range = type === 'low' ? this.thumbnailLowRange : this.thumbnailHighRange;
+    const compareFlag = `${this.thumbnailCompareMode}-r${this.thumbnailCompareRefIndex}-${this.thumbnailCompareOverlay ? 'o1' : 'o0'}`;
+    return `${step}-${type}-${this.thumbnailView}-${range[0].toFixed(2)}-${range[1].toFixed(2)}-${compareFlag}`;
+  };
+
+  setThumbnailImage = (step: number, type: 'low' | 'high', dataUrl: string) => {
+    const key = this.buildThumbnailKey(step, type);
+    this.thumbnailImages.set(key, dataUrl);
+  };
+
+  getThumbnailImage = (step: number, type: 'low' | 'high'): string | undefined => {
+    const key = this.buildThumbnailKey(step, type);
+    return this.thumbnailImages.get(key);
+  };
+
+  setThumbnailLowRange = (min: number, max: number) => {
+    this.thumbnailLowRange = [Math.min(min, max), Math.max(min, max)];
+  };
+
+  setThumbnailHighRange = (min: number, max: number) => {
+    this.thumbnailHighRange = [Math.min(min, max), Math.max(min, max)];
+  };
+
+  setThumbnailView = (view: ThumbnailView) => {
+    this.thumbnailView = view;
+  };
+
+  setThumbnailCompareMode = (mode: ThumbnailCompareMode) => {
+    this.thumbnailCompareMode = mode;
+  };
+
+  setThumbnailCompareRefIndex = (idx: number) => {
+    this.thumbnailCompareRefIndex = Math.max(0, Math.min(this.thumbnailSteps.length - 1, idx));
+  };
+
+  toggleThumbnailCompareOverlay = () => {
+    this.thumbnailCompareOverlay = !this.thumbnailCompareOverlay;
+  };
+
+  refreshThumbnails = () => {
+    this.thumbnailRefreshToken += 1;
+    if (this.thumbnailView === 'current') {
+      const keys = Array.from(this.thumbnailImages.keys());
+      for (const key of keys) {
+        if (key.includes('-current-')) {
+          this.thumbnailImages.delete(key);
+        }
+      }
+    }
   };
 
   getCachedData = (step: number): Float32Array | undefined => {

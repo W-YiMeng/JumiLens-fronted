@@ -354,6 +354,8 @@ const TransferFunctionEditor: React.FC = observer(() => {
           />
         </label>
       </div>
+
+      {/* ── Main: Gradient Weight ── */}
       <div className="tf-grad-controls">
         <div className="tf-grad-header">Gradient Weight (2D TF)</div>
         <label>
@@ -393,6 +395,8 @@ const TransferFunctionEditor: React.FC = observer(() => {
           <span>{volumeStore.gradHigh.toFixed(3)}</span>
         </label>
       </div>
+
+      {/* ── Main: Diff Layers ── */}
       <div className="tf-diff-controls">
         <div className="tf-diff-header">Diff Layers</div>
         <div className="tf-diff-toggles">
@@ -507,6 +511,47 @@ const TransferFunctionEditor: React.FC = observer(() => {
               density &gt; {volumeStore.classBoundaries[2].toFixed(3)}
             </span>
           )}
+        </div>
+      </div>
+
+      {/* ── YG: Lighting ── */}
+      <div className="tf-lighting">
+        <div className="tf-section-title">Lighting</div>
+        <div className="tf-light-row">
+          <label>Azimuth</label>
+          <input
+            type="range"
+            min={0}
+            max={360}
+            step={1}
+            value={volumeStore.lightAzimuth}
+            onChange={(e) => volumeStore.setLightAzimuth(Number(e.target.value))}
+          />
+          <span>{Math.round(volumeStore.lightAzimuth)}°</span>
+        </div>
+        <div className="tf-light-row">
+          <label>Elevation</label>
+          <input
+            type="range"
+            min={-20}
+            max={80}
+            step={1}
+            value={volumeStore.lightElevation}
+            onChange={(e) => volumeStore.setLightElevation(Number(e.target.value))}
+          />
+          <span>{Math.round(volumeStore.lightElevation)}°</span>
+        </div>
+        <div className="tf-light-row">
+          <label>Intensity</label>
+          <input
+            type="range"
+            min={0.2}
+            max={2.5}
+            step={0.1}
+            value={volumeStore.lightIntensity}
+            onChange={(e) => volumeStore.setLightIntensity(Number(e.target.value))}
+          />
+          <span>{volumeStore.lightIntensity.toFixed(1)}</span>
         </div>
       </div>
     </div>

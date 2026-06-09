@@ -24,7 +24,8 @@
   }
 }
 
-.time-controls-wrapper {
+// ── Time Controls overlay (YG base + main reference) ──
+.time-controls {
   position: absolute;
   bottom: 8px;
   left: 50%;
@@ -32,18 +33,19 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-width: 95vw;
-}
-
-.time-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
+  gap: 10px;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(6px);
   padding: 10px 20px;
   border-radius: 8px;
+  min-width: 520px;
+
+  .time-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
 
   .play-btn {
     cursor: pointer;
@@ -66,7 +68,8 @@
 
   .time-slider {
     -webkit-appearance: none;
-    width: 280px;
+    appearance: none;
+    width: 360px;
     height: 4px;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.25);
@@ -75,6 +78,7 @@
 
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
+      appearance: none;
       width: 14px;
       height: 14px;
       border-radius: 50%;
@@ -106,8 +110,199 @@
     min-width: 80px;
     text-align: center;
   }
+
+  // ── YG: Thumbnail strip ──
+  .thumb-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .thumb-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .thumb-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    span {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 10px;
+      min-width: 62px;
+    }
+
+    select {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+
+      option {
+        background: #222;
+        color: #fff;
+      }
+    }
+
+    .thumb-btn {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      &.active {
+        background: rgba(80, 180, 255, 0.3);
+        border-color: rgba(80, 180, 255, 0.6);
+      }
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 90px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      outline: none;
+      cursor: pointer;
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #fff;
+      }
+    }
+
+    .thumb-range {
+      min-width: 70px;
+      text-align: right;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    // ── Main: reference step selector ──
+    &.ref-selector {
+      .ref-label {
+        color: #ffd700;
+        font-weight: 600;
+      }
+      .ref-badge {
+        background: rgba(212, 175, 55, 0.2);
+        border: 1px solid rgba(212, 175, 55, 0.4);
+        color: #ffd700;
+        border-radius: 4px;
+        padding: 1px 8px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .ref-hint {
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 9px;
+        min-width: auto;
+      }
+    }
+  }
+
+  .thumb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .thumb-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    width: 60px;
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .thumbs {
+    display: flex;
+    gap: 6px;
+  }
+
+  .thumb {
+    width: 110px;
+    height: 54px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+    .thumb-step {
+      position: absolute;
+      bottom: 4px;
+      right: 6px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+    }
+
+    // ── Main: reference step star ──
+    .thumb-ref-star {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      color: #ffd700;
+      font-size: 12px;
+      text-shadow: 0 0 4px rgba(255, 215, 0, 0.6);
+      z-index: 2;
+    }
+
+    &.reference {
+      box-shadow: inset 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 6px rgba(255, 215, 0, 0.2);
+    }
+  }
+
+  .thumb:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  .thumb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: var(--intensity, 0.2);
+    mix-blend-mode: screen;
+  }
+
+  .thumb.low::after {
+    background: radial-gradient(circle at 30% 40%, rgba(80, 180, 255, 1), rgba(20, 40, 90, 0.3));
+  }
+
+  .thumb.high::after {
+    background: radial-gradient(circle at 35% 45%, rgba(255, 150, 90, 1), rgba(120, 20, 0, 0.4));
+  }
 }
 
+// ── Transfer Function Editor overlay ──
 .tf-editor {
   position: absolute;
   top: 12px;
@@ -162,6 +357,7 @@
 
       input[type="range"] {
         -webkit-appearance: none;
+        appearance: none;
         flex: 1;
         height: 3px;
         border-radius: 2px;
@@ -171,6 +367,7 @@
 
         &::-webkit-slider-thumb {
           -webkit-appearance: none;
+          appearance: none;
           width: 10px;
           height: 10px;
           border-radius: 50%;
@@ -180,6 +377,7 @@
 
       input[type="color"] {
         -webkit-appearance: none;
+        appearance: none;
         width: 28px;
         height: 18px;
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -218,6 +416,7 @@
 
     input[type="range"] {
       -webkit-appearance: none;
+      appearance: none;
       width: 60px;
       height: 3px;
       border-radius: 2px;
@@ -227,6 +426,7 @@
 
       &::-webkit-slider-thumb {
         -webkit-appearance: none;
+        appearance: none;
         width: 10px;
         height: 10px;
         border-radius: 50%;
@@ -235,6 +435,7 @@
     }
   }
 
+  // ── Main: Gradient Weight ──
   .tf-grad-controls {
     margin-top: 8px;
     padding-top: 8px;
@@ -284,6 +485,7 @@
     }
   }
 
+  // ── Main: Diff Layers ──
   .tf-diff-controls {
     margin-top: 8px;
     padding-top: 8px;
@@ -437,332 +639,60 @@
       }
     }
   }
-}
 
-// ── Diff timeline ──────────────────────────────────────────
+  // ── YG: Lighting ──
+  .tf-lighting {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
 
-.diff-timeline {
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(6px);
-  border-radius: 8px;
-  padding: 8px 12px;
-  min-width: 600px;
-
-  .diff-timeline-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
-
-  .diff-ref-info {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .diff-ref-label {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 10px;
-    text-transform: uppercase;
-  }
-
-  .diff-ref-step {
-    background: rgba(212, 175, 55, 0.2);
-    border: 1px solid rgba(212, 175, 55, 0.4);
-    color: #ffd700;
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 11px;
-    cursor: pointer;
-    transition: background 0.15s;
-
-    &:hover {
-      background: rgba(212, 175, 55, 0.35);
-    }
-  }
-
-  .diff-ref-step-static {
-    color: #ffd700;
-    font-size: 11px;
-    font-weight: 600;
-    background: rgba(212, 175, 55, 0.15);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    border-radius: 4px;
-    padding: 2px 8px;
-  }
-
-  .diff-ref-hint {
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 9px;
-  }
-
-  .diff-timeline-actions {
-    display: flex;
-    gap: 6px;
-  }
-
-  .diff-sort-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.7);
-    border-radius: 4px;
-    padding: 3px 10px;
-    font-size: 10px;
-    cursor: pointer;
-    transition: background 0.15s;
-    white-space: nowrap;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-  }
-
-  .diff-add-group {
-    display: flex;
-    gap: 2px;
-    align-items: center;
-  }
-
-  .diff-add-input {
-    width: 48px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.8);
-    border-radius: 4px;
-    padding: 3px 4px;
-    font-size: 10px;
-    outline: none;
-    font-variant-numeric: tabular-nums;
-
-    &::placeholder {
-      color: rgba(255, 255, 255, 0.25);
-    }
-    &:focus {
-      border-color: rgba(255, 255, 255, 0.4);
+    .tf-section-title {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
     }
 
-    // hide spin buttons
-    &::-webkit-inner-spin-button,
-    &::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-  }
-}
+    .tf-light-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
 
-.diff-thumbnail-strip {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 4px 0;
-  scroll-behavior: smooth;
+      label {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 10px;
+        width: 52px;
+      }
 
-  &::-webkit-scrollbar {
-    height: 3px;
-  }
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 2px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-  }
-}
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        flex: 1;
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.25);
+        outline: none;
+        cursor: pointer;
 
-.diff-thumbnail {
-  flex-shrink: 0;
-  width: 86px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 5px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s;
-  position: relative;
+        &::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #fff;
+        }
+      }
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-
-  &.active {
-    border-color: rgba(255, 215, 0, 0.6);
-    background: rgba(255, 215, 0, 0.08);
-    box-shadow: 0 0 6px rgba(255, 215, 0, 0.2);
-  }
-
-  &.reference {
-    border-color: rgba(212, 175, 55, 0.5);
-    background: rgba(212, 175, 55, 0.1);
-
-    .diff-thumb-label {
-      color: #ffd700;
-      font-weight: 600;
-    }
-  }
-
-  .diff-thumb-img {
-    width: 72px;
-    height: 54px;
-    border-radius: 3px;
-    overflow: hidden;
-    background: rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-  }
-
-  .diff-thumb-ref-icon {
-    color: #ffd700;
-    font-size: 20px;
-    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-  }
-
-  .diff-thumb-loading,
-  .diff-thumb-empty {
-    color: rgba(255, 255, 255, 0.25);
-    font-size: 10px;
-  }
-
-  .diff-thumb-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 10px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .diff-stats-bar {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1px;
-  }
-
-  .diff-stats-track {
-    width: 100%;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 1px;
-    display: flex;
-    overflow: hidden;
-  }
-
-  .diff-stats-growth {
-    height: 100%;
-    background: #ff3030;
-    border-radius: 1px 0 0 1px;
-    transition: width 0.3s;
-  }
-
-  .diff-stats-decline {
-    height: 100%;
-    background: #3060ff;
-    border-radius: 0 1px 1px 0;
-    transition: width 0.3s;
-  }
-
-  .diff-stats-text {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 8px;
-    white-space: nowrap;
-  }
-
-  .diff-stats-empty {
-    color: rgba(255, 255, 255, 0.2);
-    font-size: 8px;
-    text-align: center;
-  }
-
-  .diff-thumb-remove {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 10px;
-    line-height: 14px;
-    text-align: center;
-    cursor: pointer;
-    padding: 0;
-    opacity: 0;
-    transition: opacity 0.15s;
-    z-index: 2;
-
-    &:hover {
-      background: rgba(220, 50, 50, 0.8);
-      border-color: rgba(255, 100, 100, 0.6);
-      color: #fff;
-    }
-  }
-
-  &:hover .diff-thumb-remove {
-    opacity: 1;
-  }
-}
-
-.diff-empty-hint {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 11px;
-  padding: 12px 0;
-  text-align: center;
-  width: 100%;
-}
-
-// ── Sorted-by-change strip ─────────────────────────────────
-
-.diff-sorted-strip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  flex-wrap: wrap;
-
-  .diff-sorted-label {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 9px;
-    text-transform: uppercase;
-    margin-right: 2px;
-  }
-
-  .diff-sorted-chip {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.65);
-    border-radius: 3px;
-    padding: 1px 6px;
-    font-size: 10px;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
-    }
-
-    .diff-chip-dot {
-      font-size: 8px;
+      span {
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 10px;
+        min-width: 34px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
     }
   }
 }

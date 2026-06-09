@@ -20,6 +20,18 @@ uniform float uDiffOpacity;
 uniform float uDiffBaseOpacity;
 uniform bool uShowOriginal;
 uniform bool uShowDifference;
+// ── YG lighting / preview uniforms ──
+uniform float uDensityScale;
+uniform vec3 uLightDir;
+uniform float uLightIntensity;
+uniform int uPreviewMode;
+uniform vec2 uPreviewRange;
+uniform vec3 uPreviewColor;
+uniform sampler3D uVolumeB;
+uniform vec3 uPreviewColorPos;
+uniform vec3 uPreviewColorNeg;
+uniform float uPreviewDiffScale;
+uniform int uPreviewOverlay;
 
 varying vec2 vUv;
 
@@ -61,14 +73,15 @@ vec3 calcGradient(vec3 texCoord, out float mag) {
     return mag < 1e-4 ? vec3(0.0) : -g / mag;
 }
 
-vec3 phongShade(vec3 color, vec3 normal, vec3 lightDir, vec3 viewDir) {
+vec3 phongShade(vec3 color, vec3 normal, vec3 lightDir, vec3 viewDir, float intensity) {
     vec3 halfDir = normalize(lightDir + viewDir);
     float diff = max(dot(normal, lightDir), 0.0);
     float spec = pow(max(dot(normal, halfDir), 0.0), 32.0);
-    float ambient = 0.08;
-    float diffuse = 0.6;
-    float specular = 0.32;
-    return color * (ambient + diffuse * diff) + vec3(1.0) * specular * spec;
+    float ambient = 0.12;
+    float diffuse = 0.75;
+    float specular = 0.45;
+    float li = clamp(intensity, 0.0, 3.0);
+    return color * (ambient + li * diffuse * diff) + vec3(1.0) * li * specular * spec;
 }
 
 void main() {
@@ -90,7 +103,7 @@ void main() {
     tNear = max(tNear, 0.0);
 
     vec3 boxSize = uBoxMax - uBoxMin;
-    vec3 lightDir = normalize(vec3(1.0, 1.0, -0.5));
+    vec3 lightDir = normalize(uLightDir);
     int maxSteps = int(ceil((tFar - tNear) / uStepSize));
     maxSteps = min(maxSteps, 512);
 
@@ -108,17 +121,44 @@ void main() {
         vec3 texCoord = (pos - uBoxMin) / boxSize;
         texCoord = clamp(texCoord, 0.0, 1.0);
 
-        float density = texture(uVolume, texCoord).r;
+        float density = clamp(texture(uVolume, texCoord).r * uDensityScale, 0.0, 1.0);
         float diffVal = 0.0;
         if (uHasDiff) {
             diffVal = texture(uDiffVolume, texCoord).r;
         }
 
-        if (density > 0.005 || abs(diffVal) > 0.01) {
+        // ── YG Preview Mode (for thumbnail generation) ──
+        if (uPreviewMode == 2) {
+            float densityB = texture(uVolumeB, texCoord).r;
+            float maxD = max(density, densityB);
+            float edge = 0.02;
+            float inRange = smoothstep(uPreviewRange.x, uPreviewRange.x + edge, maxD)
+                          * (1.0 - smoothstep(uPreviewRange.y, uPreviewRange.y + edge, maxD));
+            float diff_b = (density - densityB) * uPreviewDiffScale;
+            float mag_b = clamp(abs(diff_b), 0.0, 1.0);
+            vec3 diffColor = diff_b >= 0.0 ? uPreviewColorPos : uPreviewColorNeg;
+            vec3 baseColor = vec3(maxD * 0.8 + 0.15);
+            vec3 overlay = diffColor * (0.35 + 0.65 * mag_b);
+            vec3 mixed = uPreviewOverlay == 1 ? mix(baseColor, overlay, 0.85) : overlay;
+            float alpha = (uPreviewOverlay == 1) ? max(0.35, mag_b) : mag_b;
+            vec4 tfColor = vec4(mixed, alpha * inRange);
+            float ma = 1.0 - accum.a;
+            accum.rgb += ma * tfColor.a * tfColor.rgb;
+            accum.a += ma * tfColor.a;
+        } else if (uPreviewMode == 1) {
+            float edge = 0.02;
+            float inRange = smoothstep(uPreviewRange.x, uPreviewRange.x + edge, density)
+                          * (1.0 - smoothstep(uPreviewRange.y, uPreviewRange.y + edge, density));
+            vec4 tfColor = vec4(uPreviewColor * (0.2 + 0.8 * inRange), inRange);
+            float ma = 1.0 - accum.a;
+            accum.rgb += ma * tfColor.a * tfColor.rgb;
+            accum.a += ma * tfColor.a;
+        }
+        // ── Main Diff Overlay Mode ──
+        else if (density > 0.005 || abs(diffVal) > 0.01) {
             vec4 tfColor = transferFunction(density);
 
             // In diff mode, ignore TF opacity — use subdued density-driven alpha
-            // so the diff overlay (red/blue) stands out clearly.
             float alpha;
             if (uHasDiff) {
                 alpha = density * uDiffBaseOpacity;
@@ -137,7 +177,7 @@ void main() {
 
                 if (uShowOriginal && length(normal) > 1e-4) {
                     vec3 vDir = normalize(uCameraPos - pos);
-                    tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir);
+                    tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir, uLightIntensity);
                 }
 
                 if (uHasDiff && uShowDifference && abs(diffVal) > 0.01) {
@@ -145,7 +185,6 @@ void main() {
                         ? vec3(0.95, 0.08, 0.08)
                         : vec3(0.08, 0.15, 0.95);
                     float intensity = clamp(abs(diffVal) * 0.6, 0.0, 1.0) * uDiffOpacity;
-                    // Suppress original color proportionally so red/blue stay pure
                     float suppress = intensity * 0.85;
                     tfColor.rgb = tfColor.rgb * (1.0 - suppress) + diffColor * intensity;
                     alphaCorrected = max(alphaCorrected, intensity * 0.35);
