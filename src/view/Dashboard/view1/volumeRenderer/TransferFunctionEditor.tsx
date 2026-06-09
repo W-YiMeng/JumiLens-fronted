@@ -424,6 +424,18 @@ const TransferFunctionEditor: React.FC = observer(() => {
           <span>{volumeStore.diffOpacity.toFixed(2)}</span>
         </label>
         <label>
+          Base Vol Opacity
+          <input
+            type="range"
+            min={0}
+            max={0.5}
+            step={0.005}
+            value={volumeStore.diffBaseOpacity}
+            onChange={(e) => volumeStore.setDiffBaseOpacity(Number(e.target.value))}
+          />
+          <span>{volumeStore.diffBaseOpacity.toFixed(3)}</span>
+        </label>
+        <label>
           Category
           <select
             className="tf-cat-select"
@@ -432,30 +444,70 @@ const TransferFunctionEditor: React.FC = observer(() => {
           >
             <option value={-1}>All categories</option>
             {volumeStore.classBoundaries.length >= 2 &&
-              Array.from(
-                { length: volumeStore.classBoundaries.length - 1 },
-                (_, i) => {
-                  const lo = volumeStore.classBoundaries[i];
-                  const hi = volumeStore.classBoundaries[i + 1];
-                  const names = [
-                    'Void/Background',
-                    'Cool Diffuse Gas',
-                    'Warm Gas',
-                    'Transition Zone',
-                    'Dense Structure',
-                    'High-Density Core',
-                    'Extreme Center',
-                  ];
-                  return (
-                    <option key={i} value={i}>
-                      Class {i}: [{lo.toFixed(2)}, {hi.toFixed(2)}){' '}
-                      {names[i] || ''}
-                    </option>
-                  );
-                }
-              )}
+              (() => {
+                const loPct = volumeStore.lowPercentile;
+                const hiPct = volumeStore.highPercentile;
+                const midPct = (hiPct - loPct).toFixed(1);
+                const names = [
+                  `Low (bottom ${loPct}%)`,
+                  `Normal (middle ${midPct}%)`,
+                  `High (top ${(100 - hiPct).toFixed(1)}%)`,
+                ];
+                return Array.from(
+                  { length: volumeStore.classBoundaries.length - 1 },
+                  (_, i) => {
+                    const lo = volumeStore.classBoundaries[i];
+                    const hi = volumeStore.classBoundaries[i + 1];
+                    return (
+                      <option key={i} value={i}>
+                        {names[i]}: [{lo.toFixed(3)}, {hi.toFixed(3)})
+                      </option>
+                    );
+                  }
+                );
+              })()}
           </select>
         </label>
+
+        <div className="tf-percentile-controls">
+          <div className="tf-percentile-header">
+            Classification Percentiles (from ref step)
+          </div>
+          <label>
+            Low %
+            <input
+              type="range"
+              min={0.1}
+              max={49}
+              step={0.5}
+              value={volumeStore.lowPercentile}
+              onChange={(e) => volumeStore.setLowPercentile(Number(e.target.value))}
+            />
+            <span>{volumeStore.lowPercentile.toFixed(1)}%</span>
+          </label>
+          {volumeStore.classBoundaries.length >= 3 && (
+            <span className="tf-percentile-value">
+              density &lt; {volumeStore.classBoundaries[1].toFixed(3)}
+            </span>
+          )}
+          <label>
+            High %
+            <input
+              type="range"
+              min={51}
+              max={99.9}
+              step={0.5}
+              value={volumeStore.highPercentile}
+              onChange={(e) => volumeStore.setHighPercentile(Number(e.target.value))}
+            />
+            <span>{volumeStore.highPercentile.toFixed(1)}%</span>
+          </label>
+          {volumeStore.classBoundaries.length >= 3 && (
+            <span className="tf-percentile-value">
+              density &gt; {volumeStore.classBoundaries[2].toFixed(3)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

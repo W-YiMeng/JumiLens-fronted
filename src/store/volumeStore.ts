@@ -22,8 +22,12 @@ class VolumeStore {
   showOriginal = true;
   showDifference = true;
   diffOpacity = 0.6;
+  diffBaseOpacity = 0.08;
   categoryFilter = -1;
   classBoundaries: number[] = [];
+  lowPercentile = 1;
+  highPercentile = 99;
+  dataVersion = 0;
   diffThumbnails = new Map<number, string>();
   thumbnailVersion = 0;
   sortedByChange: number[] = [];
@@ -165,6 +169,10 @@ class VolumeStore {
     this.diffOpacity = Math.max(0, Math.min(1, opacity));
   };
 
+  setDiffBaseOpacity = (opacity: number) => {
+    this.diffBaseOpacity = Math.max(0, Math.min(1, opacity));
+  };
+
   setCategoryFilter = (filter: number) => {
     this.categoryFilter = filter;
     this._refClassesCache = null;
@@ -172,6 +180,38 @@ class VolumeStore {
     this._diffStatsCache.clear();
     // Note: don't clear diffThumbnails — they regenerate lazily with the new filter
     this.sortedByChange = [];
+  };
+
+  setLowPercentile = (pct: number) => {
+    const clamped = Math.max(0.1, Math.min(49, pct));
+    if (clamped !== this.lowPercentile) {
+      this.lowPercentile = clamped;
+      // Ensure low < high
+      if (this.lowPercentile >= this.highPercentile) {
+        this.highPercentile = Math.min(99.9, this.lowPercentile + 1);
+      }
+      this._refClassesCache = null;
+      this._diffDataCache.clear();
+      this._diffStatsCache.clear();
+      this.diffThumbnails.clear();
+      this.sortedByChange = [];
+    }
+  };
+
+  setHighPercentile = (pct: number) => {
+    const clamped = Math.max(51, Math.min(99.9, pct));
+    if (clamped !== this.highPercentile) {
+      this.highPercentile = clamped;
+      // Ensure high > low
+      if (this.highPercentile <= this.lowPercentile) {
+        this.lowPercentile = Math.max(0.1, this.highPercentile - 1);
+      }
+      this._refClassesCache = null;
+      this._diffDataCache.clear();
+      this._diffStatsCache.clear();
+      this.diffThumbnails.clear();
+      this.sortedByChange = [];
+    }
   };
 
   setClassBoundaries = (boundaries: number[]) => {
@@ -235,6 +275,7 @@ class VolumeStore {
     this._dataCache.set(step, data);
     this._dataMin.set(step, min);
     this._dataMax.set(step, max);
+    this.dataVersion++;
 
     const MAX_CACHE = 20;
     if (this._dataCache.size > MAX_CACHE) {

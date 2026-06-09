@@ -4,13 +4,15 @@ import { VolumeScene } from './volumeScene';
 import { volumeStore } from '@/store/volumeStore';
 import { loadTimeStep } from './loadData';
 import {
-  extractBoundaries,
+  computePercentileBoundaries,
+  buildPercentileBoundaries,
   buildClassLUT,
   classifyVolumeLUT,
   computeDiffVolume,
   computeDiffStats,
   generateDiffThumbnail,
   imageDataToDataURL,
+  type PercentileThresholds,
 } from './diffClassifier';
 import TimeControls from './TimeControls';
 import TransferFunctionEditor from './TransferFunctionEditor';
@@ -114,12 +116,33 @@ const VolumeRenderer: React.FC = observer(() => {
     );
   }, [volumeStore.diffOpacity, volumeStore.showOriginal, volumeStore.showDifference]);
 
-  // ── Update class LUT when TF changes ────────────────────────
   useEffect(() => {
-    const bounds = extractBoundaries(volumeStore.transferFunction);
+    sceneRef.current?.setDiffBaseOpacity(volumeStore.diffBaseOpacity);
+  }, [volumeStore.diffBaseOpacity]);
+
+  // ── Compute percentile-based class boundaries from reference step data ──
+  useEffect(() => {
+    const refData = volumeStore.getCachedData(volumeStore.referenceStep);
+    if (!refData) return;
+
+    const thresholds: PercentileThresholds = computePercentileBoundaries(
+      refData,
+      volumeStore.lowPercentile,
+      volumeStore.highPercentile
+    );
+    const bounds = buildPercentileBoundaries(thresholds);
     volumeStore.setClassBoundaries(bounds.boundaries);
     classLutRef.current = buildClassLUT(bounds);
-  }, [volumeStore.transferFunction]);
+
+    // Boundaries changed → existing diffs are stale, recompute immediately
+    scheduleDiffImmediate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    volumeStore.referenceStep,
+    volumeStore.lowPercentile,
+    volumeStore.highPercentile,
+    volumeStore.dataVersion,
+  ]);
 
   // ── Debounced diff computation ──────────────────────────────
   const doComputeDiff = useCallback(() => {
@@ -177,7 +200,7 @@ const VolumeRenderer: React.FC = observer(() => {
     doComputeDiff();
   }, [doComputeDiff]);
 
-  // ── Trigger debounced diff on step / ref / category change ──
+  // ── Debounced diff on current step change ──────────────────
   useEffect(() => {
     scheduleDiff();
     return () => {
@@ -185,20 +208,10 @@ const VolumeRenderer: React.FC = observer(() => {
     };
   }, [volumeStore.currentStep, scheduleDiff]);
 
-  // ── Immediate diff on reference change (user explicitly chose new ref) ──
-  useEffect(() => {
-    scheduleDiffImmediate();
-  }, [volumeStore.referenceStep]);
-
   // ── Debounced diff on category filter change ────────────────
   useEffect(() => {
     scheduleDiff();
   }, [volumeStore.categoryFilter, scheduleDiff]);
-
-  // ── Immediate diff on class boundaries change ───────────────
-  useEffect(() => {
-    scheduleDiffImmediate();
-  }, [volumeStore.classBoundaries]);
 
   // ── Process thumbnails in idle time ─────────────────────────
   const processThumbBatch = useCallback(() => {
@@ -235,7 +248,8 @@ const VolumeRenderer: React.FC = observer(() => {
       const cmpClasses = classifyVolumeLUT(cmpData, lut);
       const diffData = computeDiffVolume(refClasses, cmpClasses, categoryFilter);
       const stats = computeDiffStats(refClasses, cmpClasses, categoryFilter);
-      const thumb = generateDiffThumbnail(diffData, THUMB_W, THUMB_H);
+      const maxClassDiff = Math.max(1, volumeStore.classBoundaries.length - 1);
+      const thumb = generateDiffThumbnail(diffData, THUMB_W, THUMB_H, maxClassDiff);
       const dataUrl = imageDataToDataURL(thumb);
 
       volumeStore.cacheDiffData(step, diffData);

@@ -65,6 +65,7 @@ export class VolumeScene {
         uDiffVolume: { value: null },
         uHasDiff: { value: false },
         uDiffOpacity: { value: 0.6 },
+        uDiffBaseOpacity: { value: 0.08 },
         uShowOriginal: { value: true },
         uShowDifference: { value: true },
       },
@@ -209,6 +210,10 @@ export class VolumeScene {
     this.material.uniforms.uDiffOpacity.value = opacity;
     this.material.uniforms.uShowOriginal.value = showOriginal;
     this.material.uniforms.uShowDifference.value = showDifference;
+  }
+
+  setDiffBaseOpacity(opacity: number): void {
+    this.material.uniforms.uDiffBaseOpacity.value = opacity;
   }
 
   resize(width: number, height: number): void {

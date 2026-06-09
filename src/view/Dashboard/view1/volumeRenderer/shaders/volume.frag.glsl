@@ -17,6 +17,7 @@ uniform float uGradHigh;
 uniform float uGradWeight;
 uniform bool uHasDiff;
 uniform float uDiffOpacity;
+uniform float uDiffBaseOpacity;
 uniform bool uShowOriginal;
 uniform bool uShowDifference;
 
@@ -116,7 +117,14 @@ void main() {
         if (density > 0.005 || abs(diffVal) > 0.01) {
             vec4 tfColor = transferFunction(density);
 
-            float alpha = tfColor.a;
+            // In diff mode, ignore TF opacity — use subdued density-driven alpha
+            // so the diff overlay (red/blue) stands out clearly.
+            float alpha;
+            if (uHasDiff) {
+                alpha = density * uDiffBaseOpacity;
+            } else {
+                alpha = tfColor.a;
+            }
             if (alpha > 0.005 || abs(diffVal) > 0.01) {
                 float gradMag;
                 vec3 normal = calcGradient(texCoord, gradMag);
