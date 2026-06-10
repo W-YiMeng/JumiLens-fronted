@@ -3,79 +3,82 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  position: relative;
+  background: #0d1117;
   border-radius: 8px;
-  padding: 12px;
-  box-sizing: border-box;
+  overflow: hidden;
 
-  .histogram-controls {
+  .histogram-range-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 0 4px;
+    gap: 8px;
+    padding: 4px 10px;
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'Consolas', monospace;
+    color: #ffd700;
 
-    .scale-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #555;
-      font-size: 12px;
+    button {
+      background: none;
+      border: none;
+      color: #ffd700;
       cursor: pointer;
-
-      input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        accent-color: #1890ff;
-        cursor: pointer;
-      }
-
-      span {
-        -webkit-user-select: none;
-        user-select: none;
-      }
-    }
-
-    .clear-btn {
-      padding: 4px 12px;
-      background: #fff;
-      border: 1px solid #ff4d4f;
-      border-radius: 4px;
-      color: #ff4d4f;
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover {
-        background: #fff1f0;
-      }
+      font-size: 13px;
+      padding: 0 2px;
+      line-height: 1;
+      opacity: 0.7;
+      &:hover { opacity: 1; }
     }
   }
 
   canvas {
     flex: 1;
     width: 100%;
-    border-radius: 6px;
-    background: #fff;
-    border: 1px solid #e8e8e8;
+    display: block;
   }
 
-  .selection-info {
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: #fff7e6;
-    border: 1px solid #ffd591;
-    border-radius: 6px;
+  .histogram-range-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    font-size: 12px;
-    color: #555;
+    gap: 8px;
+    padding: 4px 10px;
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'Consolas', monospace;
+    color: #ffd700;
 
-    .range-value {
-      font-family: 'Consolas', monospace;
-      color: #d46b08;
-      font-weight: 600;
+    button {
+      background: none;
+      border: none;
+      color: #ffd700;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 0 2px;
+      line-height: 1;
+      opacity: 0.7;
+      &:hover { opacity: 1; }
     }
+  }
+
+  .histogram-hint {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
   }
 }

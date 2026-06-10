@@ -13,6 +13,7 @@ class VolumeStore {
   isLoading = false;
   stepSize = 1 / 64;
   densityScale = 1.0;
+  selectedRange: { min: number; max: number } | null = null;
 
   transferFunction: TFControlPoint[] = [
     { position: 0.0, color: [0.1, 0.0, 0.2], opacity: 0.0 },
@@ -77,6 +78,10 @@ class VolumeStore {
 
   setDensityScale = (scale: number) => {
     this.densityScale = scale;
+  };
+
+  setSelectedRange = (range: { min: number; max: number } | null) => {
+    this.selectedRange = range;
   };
 
   setTransferFunction = (points: TFControlPoint[]) => {

@@ -77,51 +77,56 @@ export async function loadNyxData(
  */
 export function calculateLogHistogram(
   data: Float32Array,
-  numBins: number = 100,
-  logMin?: number,
-  logMax?: number
+  numBins: number = 80,
+  valMin?: number,
+  valMax?: number
 ): HistogramData {
-  // 过滤正数（对数需要正数）
-  const positiveData = Array.from(data).filter(v => v > 0);
-
-  if (positiveData.length === 0) {
-    return { bins: [], binEdges: [], logBins: [], logBinEdges: [] };
+  // Scan directly on Float32Array — no Array.from() copy
+  let minVal = Infinity;
+  let maxVal = -Infinity;
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    if (v < minVal) minVal = v;
+    if (v > maxVal) maxVal = v;
   }
 
-  // 计算对数范围
-  const actualLogMin = logMin ?? Math.log10(Math.min(...positiveData));
-  const actualLogMax = logMax ?? Math.log10(Math.max(...positiveData));
+  // Data is already log10(density), bin directly
+  const histMin = valMin ?? minVal;
+  const histMax = valMax ?? maxVal;
 
-  const logRange = actualLogMax - actualLogMin;
-  const binWidth = logRange / numBins;
+  const range = histMax - histMin;
+  if (range <= 0) return { bins: [], binEdges: [], logBins: [], logBinEdges: [] };
 
-  // 初始化分箱
-  const bins = new Array(numBins).fill(0);
+  const binWidth = range / numBins;
+
+  // Init bins as Int32Array
+  const bins = new Int32Array(numBins);
+
+  for (let i = 0; i < data.length; i++) {
+    let bi = Math.floor((data[i] - histMin) / binWidth);
+    // Clamp out-of-range values to first/last bin
+    if (bi < 0) bi = 0;
+    if (bi >= numBins) bi = numBins - 1;
+    bins[bi]++;
+  }
+
+  // Convert to regular arrays for return
+  const binsArr = new Array(numBins);
+  const logBinsArr = new Array(numBins);
+  for (let i = 0; i < numBins; i++) {
+    binsArr[i] = bins[i];
+    logBinsArr[i] = bins[i];
+  }
+
   const binEdges: number[] = [];
-  const logBins = new Array(numBins).fill(0);
   const logBinEdges: number[] = [];
-
-  // 计算分箱边界
   for (let i = 0; i <= numBins; i++) {
-    const logEdge = actualLogMin + i * binWidth;
-    logBinEdges.push(logEdge);
-    binEdges.push(Math.pow(10, logEdge));
+    const edge = histMin + i * binWidth;
+    logBinEdges.push(edge);
+    binEdges.push(edge);  // data IS log10, so both are the same
   }
 
-  // 填充分箱
-  for (const value of positiveData) {
-    const logValue = Math.log10(value);
-    let binIndex = Math.floor((logValue - actualLogMin) / binWidth);
-
-    // 处理边界情况
-    if (binIndex < 0) binIndex = 0;
-    if (binIndex >= numBins) binIndex = numBins - 1;
-
-    bins[binIndex]++;
-    logBins[binIndex]++;
-  }
-
-  return { bins, binEdges, logBins, logBinEdges };
+  return { bins: binsArr, binEdges, logBins: logBinsArr, logBinEdges };
 }
 
 /**
@@ -147,24 +152,42 @@ export function calculateStatistics(data: Float32Array) {
   const variance = sumSq / n - mean * mean;
   const std = Math.sqrt(variance);
 
-  // 计算百分位数
-  const sorted = Array.from(data).sort((a, b) => a - b);
-  const median = sorted[Math.floor(n * 0.5)];
-  const p1 = sorted[Math.floor(n * 0.01)];
-  const p5 = sorted[Math.floor(n * 0.05)];
-  const p95 = sorted[Math.floor(n * 0.95)];
-  const p99 = sorted[Math.floor(n * 0.99)];
+  // Histogram-based percentile approximation (no full sort)
+  const NUM_HIST = 200;
+  const histMin = min;
+  const histMax = max;
+  const histRange = histMax - histMin || 1;
+  const hist = new Int32Array(NUM_HIST);
+
+  for (let i = 0; i < data.length; i++) {
+    let bi = Math.floor(((data[i] - histMin) / histRange) * NUM_HIST);
+    if (bi < 0) bi = 0;
+    if (bi >= NUM_HIST) bi = NUM_HIST - 1;
+    hist[bi]++;
+  }
+
+  const percentileAt = (p: number): number => {
+    const target = Math.floor(n * p);
+    let cum = 0;
+    for (let i = 0; i < NUM_HIST; i++) {
+      cum += hist[i];
+      if (cum >= target) {
+        return histMin + (i + 0.5) * (histRange / NUM_HIST);
+      }
+    }
+    return histMax;
+  };
 
   return {
     min,
     max,
     mean,
     std,
-    median,
-    p1,
-    p5,
-    p95,
-    p99,
+    median: percentileAt(0.5),
+    p1: percentileAt(0.01),
+    p5: percentileAt(0.05),
+    p95: percentileAt(0.95),
+    p99: percentileAt(0.99),
   };
 }
 

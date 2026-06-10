@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { DensityHistogram, StatisticsPanel } from '@/components';
 import {
@@ -11,17 +11,21 @@ import { volumeStore } from '@/store/volumeStore';
 import './index.less';
 
 const DATA_DIMENSIONS = { x: 128, y: 128, z: 128 };
+// Fixed global histogram range across all 100 steps
+const HIST_MIN = 7.7;
+const HIST_MAX = 14.6;
 
 const View2: React.FC = observer(() => {
   const [histogramData, setHistogramData] = useState<HistogramData | null>(null);
   const [statistics, setStatistics] = useState<ReturnType<typeof calculateStatistics> | null>(null);
-  const [selectedRange, setSelectedRange] = useState<{ min: number; max: number } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentTimestep = volumeStore.currentStep;
+  const latestRef = useRef(currentTimestep);
 
   const loadData = useCallback(async (timestep: number) => {
+    latestRef.current = timestep;
     setIsLoading(true);
     setError(null);
 
@@ -30,15 +34,19 @@ const View2: React.FC = observer(() => {
       const url = `/assets/Nyx/${filename}`;
       const data = await loadNyxData(url, timestep, DATA_DIMENSIONS);
 
-      const histogram = calculateLogHistogram(data.data, 80, Math.log10(data.min), Math.log10(data.max));
-      setHistogramData(histogram);
+      // Ignore stale responses
+      if (timestep !== latestRef.current) return;
 
+      const histogram = calculateLogHistogram(data.data, 80, HIST_MIN, HIST_MAX);
       const stats = calculateStatistics(data.data);
+
+      setHistogramData(histogram);
       setStatistics(stats);
+      setIsLoading(false);
     } catch (err) {
+      if (timestep !== latestRef.current) return;
       console.error('Failed to load data:', err);
       setError(`加载时间步 ${timestep} 失败`);
-    } finally {
       setIsLoading(false);
     }
   }, []);
@@ -48,7 +56,7 @@ const View2: React.FC = observer(() => {
   }, [currentTimestep, loadData]);
 
   const handleRangeSelect = useCallback((range: { min: number; max: number } | null) => {
-    setSelectedRange(range);
+    volumeStore.setSelectedRange(range);
   }, []);
 
   const handleRetry = useCallback(() => {
@@ -79,8 +87,11 @@ const View2: React.FC = observer(() => {
                 logBins={histogramData.logBins}
                 logBinEdges={histogramData.logBinEdges}
                 timestep={currentTimestep}
+                p1={statistics?.p1}
+                p99={statistics?.p99}
+                median={statistics?.median}
                 onRangeSelect={handleRangeSelect}
-                selectedRange={selectedRange}
+                selectedRange={volumeStore.selectedRange}
               />
             )}
           </div>

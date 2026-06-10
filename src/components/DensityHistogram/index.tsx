@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import './index.less';
 
 interface DensityHistogramProps {
@@ -7,6 +7,9 @@ interface DensityHistogramProps {
   logBins: number[];
   logBinEdges: number[];
   timestep: number;
+  p1?: number;
+  p99?: number;
+  median?: number;
   onRangeSelect?: (range: { min: number; max: number } | null) => void;
   selectedRange?: { min: number; max: number } | null;
 }
@@ -17,350 +20,349 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
   logBins,
   logBinEdges,
   timestep,
+  p1,
+  p99,
+  median,
   onRangeSelect,
   selectedRange,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sizeRef = useRef({ w: 600, h: 350 });
+
+  // Brush selection state
   const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState<number | null>(null);
-  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
-  const [showLogScale, setShowLogScale] = useState(true);
+  const selRef = useRef<{ startX: number; endX: number } | null>(null);
+  const [selOverlay, setSelOverlay] = useState<{ x1: number; x2: number } | null>(null);
 
-  const currentBins = showLogScale ? logBins : bins;
-  const currentBinEdges = showLogScale ? logBinEdges : binEdges;
+  const currentBins = logBins;
+  const currentBinEdges = logBinEdges;
 
-  // 计算统计数据
-  const stats = useMemo(() => {
-    if (currentBins.length === 0) return null;
+  // ResizeObserver — only manages canvas bitmap size, never triggers re-render
+  useEffect(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
 
-    const total = currentBins.reduce((sum, count) => sum + count, 0);
-    const maxCount = Math.max(...currentBins);
-    
-    // 计算累积分布
-    const cumulative: number[] = [];
-    let cumSum = 0;
-    for (const count of currentBins) {
-      cumSum += count;
-      cumulative.push(cumSum / total);
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width <= 0 || height <= 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.round(width);
+      const h = Math.round(height);
+      // Set canvas bitmap
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      // Set CSS size
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      // Store logical size for drawing
+      sizeRef.current = { w, h };
+      // Trigger redraw
+      drawFrame();
+    });
+    ro.observe(container);
+
+    function drawFrame() {
+      const ctx = canvas!.getContext('2d');
+      if (!ctx) return;
+      const dpr = window.devicePixelRatio || 1;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const { w, h } = sizeRef.current;
+      drawChart(ctx, w, h);
     }
 
-    return { total, maxCount, cumulative };
-  }, [currentBins]);
+    return () => ro.disconnect();
+  }, []);
 
-  // 绘制直方图
-  const drawHistogram = useCallback(() => {
+  // Redraw when data or timestep changes
+  useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || currentBins.length === 0 || !stats) return;
-
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawChart(ctx, sizeRef.current.w, sizeRef.current.h);
+  });
 
-    const width = canvas.width;
-    const height = canvas.height;
-    const padding = { top: 40, right: 60, bottom: 60, left: 70 };
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
+  // -------- drawing logic (no side effects) --------
+  function drawChart(
+    ctx: CanvasRenderingContext2D,
+    W: number,
+    H: number
+  ) {
+    if (currentBins.length === 0) return;
 
-    // 清空画布
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
+    const total = currentBins.reduce((s, c) => s + c, 0);
+    const maxC = Math.max(...currentBins) || 1;
+    const logMax = Math.log10(maxC);
 
-    // 绘制网格
-    ctx.strokeStyle = '#f0f0f0';
+    const cumulative: number[] = [];
+    let cs = 0;
+    for (const c of currentBins) { cs += c; cumulative.push(cs / total); }
+
+    const pad = { t: 36, r: 20, b: 44, l: 68 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n = currentBins.length;
+    const binW = cw / n;
+
+    // Background
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, W, H);
+
+    // Y-axis log ticks
+    const yTicks: number[] = [];
+    for (let pow = 0; pow <= Math.ceil(logMax); pow++) {
+      yTicks.push(Math.pow(10, pow));
+    }
+
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 1;
-    ctx.setLineDash([2, 4]);
-
-    // 水平网格线
-    for (let i = 0; i <= 5; i++) {
-      const y = padding.top + (chartHeight / 5) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(padding.left + chartWidth, y);
-      ctx.stroke();
+    for (const tick of yTicks) {
+      const gy = pad.t + ch - (Math.log10(tick) / logMax) * ch;
+      ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(pad.l + cw, gy); ctx.stroke();
     }
 
-    // 垂直网格线
-    const numVerticalLines = 10;
-    for (let i = 0; i <= numVerticalLines; i++) {
-      const x = padding.left + (chartWidth / numVerticalLines) * i;
-      ctx.beginPath();
-      ctx.moveTo(x, padding.top);
-      ctx.lineTo(x, padding.top + chartHeight);
-      ctx.stroke();
-    }
-
-    ctx.setLineDash([]);
-
-    // 绘制直方图条形
-    const binWidth = chartWidth / currentBins.length;
-    const maxCount = stats.maxCount;
-
-    for (let i = 0; i < currentBins.length; i++) {
-      const count = currentBins[i];
-      const barHeight = (count / maxCount) * chartHeight;
-      const x = padding.left + i * binWidth;
-      const y = padding.top + chartHeight - barHeight;
-
-      // 判断是否在选中范围内
-      let isSelected = false;
-      if (selectedRange && currentBinEdges.length > i) {
-        const binMin = currentBinEdges[i];
-        const binMax = currentBinEdges[i + 1] || binMin;
-        isSelected = binMin >= selectedRange.min && binMax <= selectedRange.max;
-      }
-
-      // 渐变色
-      const gradient = ctx.createLinearGradient(0, y, 0, padding.top + chartHeight);
-      if (isSelected) {
-        gradient.addColorStop(0, '#ff7875');
-        gradient.addColorStop(1, '#ff4d4f');
-      } else {
-        gradient.addColorStop(0, '#69b1ff');
-        gradient.addColorStop(0.5, '#1677ff');
-        gradient.addColorStop(1, '#003eb3');
-      }
-
+    // Bars (log Y)
+    for (let i = 0; i < n; i++) {
+      const c = currentBins[i];
+      const logH = c > 0 ? Math.log10(c) / logMax : 0;
+      const bh = logH * ch;
+      const x = pad.l + i * binW;
+      const y = pad.t + ch - bh;
+      const gradient = ctx.createLinearGradient(0, y, 0, pad.t + ch);
+      gradient.addColorStop(0, '#3c5a8c');
+      gradient.addColorStop(0.5, '#2e6ab0');
+      gradient.addColorStop(1, '#1a3a5c');
       ctx.fillStyle = gradient;
-      ctx.fillRect(x + 1, y, binWidth - 2, barHeight);
-
-      // 条形边框
-      ctx.strokeStyle = isSelected ? '#ffa39e' : 'transparent';
-      ctx.lineWidth = 0.5;
-      ctx.strokeRect(x + 1, y, binWidth - 2, barHeight);
+      ctx.fillRect(x + 0.5, y, binW - 1, bh);
     }
 
-    // 绘制坐标轴
-    ctx.strokeStyle = '#bfbfbf';
-    ctx.lineWidth = 2;
+    // Axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t + ch); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l, pad.t + ch); ctx.lineTo(pad.l + cw, pad.t + ch); ctx.stroke();
 
-    // Y轴
-    ctx.beginPath();
-    ctx.moveTo(padding.left, padding.top);
-    ctx.lineTo(padding.left, padding.top + chartHeight);
-    ctx.stroke();
-
-    // X轴
-    ctx.beginPath();
-    ctx.moveTo(padding.left, padding.top + chartHeight);
-    ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
-    ctx.stroke();
-
-    // Y轴标签
-    ctx.fillStyle = '#8c8c8c';
-    ctx.font = '11px Consolas, monospace';
+    // Y-axis labels (log)
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '10px Consolas, monospace';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-
-    for (let i = 0; i <= 5; i++) {
-      const value = (maxCount / 5) * (5 - i);
-      const y = padding.top + (chartHeight / 5) * i;
-      ctx.fillText(value.toExponential(1), padding.left - 10, y);
+    for (const tick of yTicks) {
+      const gy = pad.t + ch - (Math.log10(tick) / logMax) * ch;
+      ctx.fillText(formatCount(tick), pad.l - 8, gy);
     }
 
-    // X轴标签
+    // X-axis labels
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-
-    const numLabels = 6;
-    for (let i = 0; i < numLabels; i++) {
-      const binIndex = Math.floor((currentBinEdges.length - 1) * i / (numLabels - 1));
-      const value = currentBinEdges[binIndex];
-      const x = padding.left + (chartWidth / (numLabels - 1)) * i;
-      
-      let label: string;
-      if (showLogScale) {
-        label = value.toExponential(1);
-      } else {
-        label = value.toExponential(1);
-      }
-      
-      ctx.save();
-      ctx.translate(x, padding.top + chartHeight + 10);
-      ctx.rotate(-Math.PI / 4);
-      ctx.fillText(label, 0, 0);
-      ctx.restore();
+    const xSteps = 6;
+    for (let i = 0; i < xSteps; i++) {
+      const idx = Math.floor((currentBinEdges.length - 1) * i / (xSteps - 1));
+      const v = currentBinEdges[idx];
+      const x = pad.l + (cw / (xSteps - 1)) * i;
+      ctx.fillText(v.toFixed(2), x, pad.t + ch + 8);
     }
 
-    // 轴标题
+    // Axis titles
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('log\u{2081}\u{2080}(density)', pad.l + cw / 2, pad.t + ch + 28);
+
     ctx.save();
-    ctx.translate(20, padding.top + chartHeight / 2);
+    ctx.translate(10, pad.t + ch / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = 'center';
-    ctx.font = '12px Consolas, monospace';
-    ctx.fillText('频数', 0, 0);
+    ctx.fillText('Count (log)', 0, 0);
     ctx.restore();
 
+    // Title
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(
-      showLogScale ? '密度 (log₁₀)' : '密度',
-      padding.left + chartWidth / 2,
-      height - 10
-    );
+    ctx.fillText(`Step ${timestep}`, W / 2, 16);
 
-    // 绘制标题
-    ctx.font = 'bold 14px Consolas, monospace';
-    ctx.fillStyle = '#1a1a1a';
-    ctx.textAlign = 'center';
-    ctx.fillText(
-      `密度分布直方图 - 时间步 ${timestep}`,
-      width / 2,
-      25
-    );
+    // map density value → x position
+    const histMin = currentBinEdges[0];
+    const histMax = currentBinEdges[currentBinEdges.length - 1];
+    const histRange = histMax - histMin;
+    const valToX = (v: number) => pad.l + ((v - histMin) / histRange) * cw;
 
-    // 绘制选择区域
-    if (selectionStart !== null && selectionEnd !== null) {
-      const startX = Math.min(selectionStart, selectionEnd);
-      const endX = Math.max(selectionStart, selectionEnd);
-      
-      ctx.fillStyle = 'rgba(255, 107, 107, 0.3)';
-      ctx.fillRect(startX, padding.top, endX - startX, chartHeight);
-      
-      ctx.strokeStyle = '#ff6b6b';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(startX, padding.top, endX - startX, chartHeight);
+    // Median line
+    if (median !== undefined) {
+      const mx = valToX(median);
+      ctx.strokeStyle = 'rgba(255,230,109,0.6)';
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(mx, pad.t); ctx.lineTo(mx, pad.t + ch); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ffe66d';
+      ctx.font = '9px Consolas, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('median', mx, pad.t - 4);
     }
 
-    // 绘制选中范围指示
-    if (selectedRange && currentBinEdges.length > 0) {
-      const minIndex = currentBinEdges.findIndex(edge => edge >= selectedRange.min);
-      const maxIndex = currentBinEdges.findIndex(edge => edge >= selectedRange.max);
-      
-      if (minIndex !== -1 && maxIndex !== -1) {
-        const startX = padding.left + minIndex * binWidth;
-        const endX = padding.left + maxIndex * binWidth;
-        
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
-        ctx.fillRect(startX, padding.top, endX - startX, chartHeight);
-        
-        ctx.strokeStyle = '#ffd700';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-        ctx.strokeRect(startX, padding.top, endX - startX, chartHeight);
+    // ±1σ band
+    if (cumulative.length > 0) {
+      const p16 = cumulative.findIndex(v => v >= 0.16);
+      const p84 = cumulative.findIndex(v => v >= 0.84);
+      if (p16 >= 0 && p84 >= 0) {
+        const x1 = pad.l + p16 * binW;
+        const x2 = pad.l + p84 * binW;
+        ctx.fillStyle = 'rgba(78,205,196,0.12)';
+        ctx.fillRect(x1, pad.t, x2 - x1, ch);
+        ctx.strokeStyle = '#4ecdc4';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath(); ctx.moveTo(x1, pad.t); ctx.lineTo(x1, pad.t + ch); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x2, pad.t); ctx.lineTo(x2, pad.t + ch); ctx.stroke();
         ctx.setLineDash([]);
       }
     }
 
-    // 绘制统计信息
-    ctx.fillStyle = '#8c8c8c';
-    ctx.font = '10px Consolas, monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`总计: ${stats.total.toLocaleString()}`, padding.left + chartWidth + 10, padding.top + 20);
-    ctx.fillText(`峰值: ${maxCount.toExponential(1)}`, padding.left + chartWidth + 10, padding.top + 35);
-
-  }, [currentBins, currentBinEdges, stats, selectedRange, selectionStart, selectionEnd, showLogScale, timestep]);
-
-  // 当数据变化时重绘
-  React.useEffect(() => {
-    drawHistogram();
-  }, [drawHistogram]);
-
-  // 鼠标事件处理
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const padding = { top: 40, right: 60, bottom: 60, left: 70 };
-    const chartWidth = canvas.width - padding.left - padding.right;
-
-    if (x >= padding.left && x <= padding.left + chartWidth) {
-      setIsSelecting(true);
-      setSelectionStart(x);
-      setSelectionEnd(x);
+    // P1 / P99 — using exact percentile values
+    // Brush selection overlay
+    if (selOverlay) {
+      const x1 = Math.min(selOverlay.x1, selOverlay.x2);
+      const x2 = Math.max(selOverlay.x1, selOverlay.x2);
+      ctx.fillStyle = 'rgba(255,215,0,0.2)';
+      ctx.fillRect(x1, pad.t, x2 - x1, ch);
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 2]);
+      ctx.strokeRect(x1, pad.t, x2 - x1, ch);
+      ctx.setLineDash([]);
     }
+
+    if (p99 !== undefined) {
+      const px = valToX(p99);
+      ctx.fillStyle = 'rgba(255,107,107,0.06)';
+      ctx.fillRect(px, pad.t, pad.l + cw - px, ch);
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t + ch); ctx.stroke();
+      ctx.setLineDash([]);
+      drawBadge(ctx, px, pad.t - 2, 'P99=' + p99.toFixed(2), '#ff6b6b');
+    }
+    if (p1 !== undefined) {
+      const px = valToX(p1);
+      ctx.fillStyle = 'rgba(78,205,196,0.06)';
+      ctx.fillRect(pad.l, pad.t, px - pad.l, ch);
+      ctx.strokeStyle = '#4ecdc4';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t + ch); ctx.stroke();
+      ctx.setLineDash([]);
+      drawBadge(ctx, px, pad.t + ch + 18, 'P1=' + p1.toFixed(2), '#4ecdc4');
+    }
+  }
+
+  function drawBadge(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number,
+    text: string, color: string
+  ) {
+    ctx.font = 'bold 10px Consolas, monospace';
+    const m = ctx.measureText(text);
+    const bw = m.width + 12;
+    const bh = 18;
+    const bx = x - bw / 2;
+    // Background pill
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(bx, y - bh / 2, bw, bh, 4);
+    ctx.fill();
+    // Text
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+  }
+
+  // ---- mouse handlers ----
+  const getX = useCallback((e: React.MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    return rect ? e.clientX - rect.left : 0;
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const x = getX(e);
+    selRef.current = { startX: x, endX: x };
+    setIsSelecting(true);
+    setSelOverlay({ x1: x, x2: x });
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isSelecting) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    setSelectionEnd(x);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isSelecting || !selRef.current) return;
+    const x = getX(e);
+    selRef.current.endX = x;
+    setSelOverlay({ x1: selRef.current.startX, x2: x });
   };
 
   const handleMouseUp = () => {
-    if (!isSelecting || !onRangeSelect) {
+    if (!isSelecting || !selRef.current || !onRangeSelect) {
       setIsSelecting(false);
-      setSelectionStart(null);
-      setSelectionEnd(null);
+      setSelOverlay(null);
       return;
     }
+    const { startX, endX } = selRef.current;
+    const padL = 68;
+    const cw = sizeRef.current.w - padL - 20;
+    const n = currentBins.length;
+    const binW = cw / n;
+    const histMin = currentBinEdges[0];
+    const histRange = currentBinEdges[currentBinEdges.length - 1] - histMin;
 
-    const canvas = canvasRef.current;
-    if (!canvas || selectionStart === null || selectionEnd === null) {
-      setIsSelecting(false);
-      return;
-    }
+    const x1 = Math.min(startX, endX);
+    const x2 = Math.max(startX, endX);
 
-    const padding = { top: 40, right: 60, bottom: 60, left: 70 };
-    const chartWidth = canvas.width - padding.left - padding.right;
-    const binWidth = chartWidth / currentBins.length;
+    const dMin = histMin + ((x1 - padL) / cw) * histRange;
+    const dMax = histMin + ((x2 - padL) / cw) * histRange;
 
-    const startX = Math.min(selectionStart, selectionEnd);
-    const endX = Math.max(selectionStart, selectionEnd);
-
-    const startBin = Math.floor((startX - padding.left) / binWidth);
-    const endBin = Math.floor((endX - padding.left) / binWidth);
-
-    if (startBin >= 0 && endBin < currentBinEdges.length - 1 && startBin <= endBin) {
-      const minDensity = currentBinEdges[Math.max(0, startBin)];
-      const maxDensity = currentBinEdges[Math.min(currentBinEdges.length - 1, endBin + 1)];
-      
-      onRangeSelect({ min: minDensity, max: maxDensity });
+    if (dMax > dMin) {
+      onRangeSelect({ min: dMin, max: dMax });
     }
 
     setIsSelecting(false);
-    setSelectionStart(null);
-    setSelectionEnd(null);
+    setSelOverlay(null);
   };
 
-  const handleClearSelection = () => {
-    if (onRangeSelect) {
-      onRangeSelect(null);
-    }
+  const handleClear = () => {
+    if (onRangeSelect) onRangeSelect(null);
   };
 
   return (
-    <div className="density-histogram">
-      <div className="histogram-controls">
-        <label className="scale-toggle">
-          <input
-            type="checkbox"
-            checked={showLogScale}
-            onChange={(e) => setShowLogScale(e.target.checked)}
-          />
-          <span>对数坐标</span>
-        </label>
-        {selectedRange && (
-          <button className="clear-btn" onClick={handleClearSelection}>
-            清除选择
-          </button>
-        )}
-      </div>
+    <div className="density-histogram" ref={containerRef}>
+      {selectedRange && (
+        <div className="histogram-range-badge">
+          <span>Filter: [{selectedRange.min.toFixed(2)}, {selectedRange.max.toFixed(2)}]</span>
+          <button onClick={handleClear}>✕</button>
+        </div>
+      )}
       <canvas
         ref={canvasRef}
-        width={600}
-        height={350}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        style={{ cursor: isSelecting ? 'crosshair' : 'pointer' }}
+        style={{ cursor: isSelecting ? 'col-resize' : 'crosshair' }}
       />
-      {selectedRange && (
-        <div className="selection-info">
-          <span>已选择密度范围:</span>
-          <span className="range-value">
-            [{selectedRange.min.toExponential(2)}, {selectedRange.max.toExponential(2)}]
-          </span>
-        </div>
+      {!selectedRange && (
+        <div className="histogram-hint">Drag to select density range in 3D view</div>
       )}
     </div>
   );
 };
+
+function formatCount(v: number): string {
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'k';
+  return Math.round(v).toString();
+}
 
 export default DensityHistogram;

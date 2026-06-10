@@ -57,6 +57,8 @@ export class VolumeScene {
         uBoxMin: { value: new THREE.Vector3(-0.5, -0.5, -0.5) },
         uBoxMax: { value: new THREE.Vector3(0.5, 0.5, 0.5) },
         uStepSize: { value: 1.0 / 64 },
+        uFilterMin: { value: -1.0 },
+        uFilterMax: { value: -1.0 },
       },
       depthTest: false,
       depthWrite: false,
@@ -155,6 +157,18 @@ export class VolumeScene {
     }
 
     return { r: last.color[0], g: last.color[1], b: last.color[2], a: last.opacity };
+  }
+
+  updateFilterRange(range: { min: number; max: number } | null, dataRange?: { min: number; max: number }): void {
+    if (range && dataRange) {
+      const dMin = dataRange.min, dMax = dataRange.max;
+      const dSpan = dMax - dMin || 1;
+      this.material.uniforms.uFilterMin.value = (range.min - dMin) / dSpan;
+      this.material.uniforms.uFilterMax.value = (range.max - dMin) / dSpan;
+    } else {
+      this.material.uniforms.uFilterMin.value = -1.0;
+      this.material.uniforms.uFilterMax.value = -1.0;
+    }
   }
 
   updateStepSize(stepSize: number): void {

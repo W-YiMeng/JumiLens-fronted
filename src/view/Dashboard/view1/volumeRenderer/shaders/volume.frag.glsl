@@ -10,6 +10,8 @@ uniform vec2 uResolution;
 uniform vec3 uBoxMin;
 uniform vec3 uBoxMax;
 uniform float uStepSize;
+uniform float uFilterMin;
+uniform float uFilterMax;
 
 varying vec2 vUv;
 
@@ -95,12 +97,25 @@ void main() {
         if (density > 0.005) {
             vec4 tfColor = transferFunction(density);
 
+            // Range filter
+            float inRange = 1.0;
+            if (uFilterMin >= 0.0) {
+                inRange = (density >= uFilterMin && density <= uFilterMax) ? 1.0 : 0.0;
+            }
+
             if (tfColor.a > 0.005) {
                 vec3 normal = calcGradient(texCoord);
                 if (length(normal) > 1e-4) {
                     vec3 vDir = normalize(uCameraPos - pos);
                     tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir);
                 }
+
+                if (inRange < 0.5) {
+                    float gray = dot(tfColor.rgb, vec3(0.299, 0.587, 0.114));
+                    tfColor.rgb = mix(vec3(gray), tfColor.rgb, 0.08);
+                    tfColor.a *= 0.02;
+                }
+
                 float ma = 1.0 - accum.a;
                 accum.rgb += ma * tfColor.a * tfColor.rgb;
                 accum.a += ma * tfColor.a;

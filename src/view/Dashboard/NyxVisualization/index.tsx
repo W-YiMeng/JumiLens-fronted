@@ -55,7 +55,7 @@ const NyxVisualization: React.FC = () => {
       const data = await loadNyxData(url, timestep, DATA_DIMENSIONS);
       setNyxData(data);
 
-      const histogram = calculateLogHistogram(data.data, 80, Math.log10(data.min), Math.log10(data.max));
+      const histogram = calculateLogHistogram(data.data, 80, data.min, data.max);
       setHistogramData(histogram);
 
       const stats = calculateStatistics(data.data);
