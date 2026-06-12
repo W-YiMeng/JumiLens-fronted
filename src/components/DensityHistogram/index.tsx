@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { chartColors as C } from './chartColors';
 import './index.less';
 
 interface DensityHistogramProps {
@@ -109,7 +110,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     const binW = cw / n;
 
     // Background
-    ctx.fillStyle = '#0d1117';
+    ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, W, H);
 
     // Y-axis log ticks
@@ -119,7 +120,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     // Grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.strokeStyle = C.grid;
     ctx.lineWidth = 1;
     for (const tick of yTicks) {
       const gy = pad.t + ch - (Math.log10(tick) / logMax) * ch;
@@ -134,21 +135,21 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       const x = pad.l + i * binW;
       const y = pad.t + ch - bh;
       const gradient = ctx.createLinearGradient(0, y, 0, pad.t + ch);
-      gradient.addColorStop(0, '#3c5a8c');
-      gradient.addColorStop(0.5, '#2e6ab0');
-      gradient.addColorStop(1, '#1a3a5c');
+      gradient.addColorStop(0, C.barTop);
+      gradient.addColorStop(0.5, C.barMid);
+      gradient.addColorStop(1, C.barBottom);
       ctx.fillStyle = gradient;
       ctx.fillRect(x + 0.5, y, binW - 1, bh);
     }
 
     // Axes
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.strokeStyle = C.axis;
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t + ch); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(pad.l, pad.t + ch); ctx.lineTo(pad.l + cw, pad.t + ch); ctx.stroke();
 
     // Y-axis labels (log)
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = C.axisLabel;
     ctx.font = '10px Consolas, monospace';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
@@ -169,7 +170,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     // Axis titles
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillStyle = C.axisTitle;
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('log\u{2081}\u{2080}(density)', pad.l + cw / 2, pad.t + ch + 28);
@@ -182,7 +183,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     ctx.restore();
 
     // Title
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fillStyle = C.title;
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`Step ${timestep}`, W / 2, 16);
@@ -196,11 +197,11 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     // Median line
     if (median !== undefined) {
       const mx = valToX(median);
-      ctx.strokeStyle = 'rgba(255,230,109,0.6)';
+      ctx.strokeStyle = C.medianLine;
       ctx.setLineDash([4, 3]);
       ctx.beginPath(); ctx.moveTo(mx, pad.t); ctx.lineTo(mx, pad.t + ch); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#ffe66d';
+      ctx.fillStyle = C.medianText;
       ctx.font = '9px Consolas, monospace';
       ctx.textAlign = 'center';
       ctx.fillText('median', mx, pad.t - 4);
@@ -213,9 +214,9 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       if (p16 >= 0 && p84 >= 0) {
         const x1 = pad.l + p16 * binW;
         const x2 = pad.l + p84 * binW;
-        ctx.fillStyle = 'rgba(78,205,196,0.12)';
+        ctx.fillStyle = C.sigmaFill;
         ctx.fillRect(x1, pad.t, x2 - x1, ch);
-        ctx.strokeStyle = '#4ecdc4';
+        ctx.strokeStyle = C.sigmaStroke;
         ctx.lineWidth = 1;
         ctx.setLineDash([2, 3]);
         ctx.beginPath(); ctx.moveTo(x1, pad.t); ctx.lineTo(x1, pad.t + ch); ctx.stroke();
@@ -229,9 +230,9 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     if (selOverlay) {
       const x1 = Math.min(selOverlay.x1, selOverlay.x2);
       const x2 = Math.max(selOverlay.x1, selOverlay.x2);
-      ctx.fillStyle = 'rgba(255,215,0,0.2)';
+      ctx.fillStyle = C.brushFill;
       ctx.fillRect(x1, pad.t, x2 - x1, ch);
-      ctx.strokeStyle = '#ffd700';
+      ctx.strokeStyle = C.brushStroke;
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 2]);
       ctx.strokeRect(x1, pad.t, x2 - x1, ch);
@@ -240,25 +241,25 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
 
     if (p99 !== undefined) {
       const px = valToX(p99);
-      ctx.fillStyle = 'rgba(255,107,107,0.06)';
+      ctx.fillStyle = C.p99Fill;
       ctx.fillRect(px, pad.t, pad.l + cw - px, ch);
-      ctx.strokeStyle = '#ff6b6b';
+      ctx.strokeStyle = C.p99Stroke;
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t + ch); ctx.stroke();
       ctx.setLineDash([]);
-      drawBadge(ctx, px, pad.t - 2, 'P99=' + p99.toFixed(2), '#ff6b6b');
+      drawBadge(ctx, px, pad.t - 2, 'P99=' + p99.toFixed(2), C.p99Badge);
     }
     if (p1 !== undefined) {
       const px = valToX(p1);
-      ctx.fillStyle = 'rgba(78,205,196,0.06)';
+      ctx.fillStyle = C.p1Fill;
       ctx.fillRect(pad.l, pad.t, px - pad.l, ch);
-      ctx.strokeStyle = '#4ecdc4';
+      ctx.strokeStyle = C.sigmaStroke;
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t + ch); ctx.stroke();
       ctx.setLineDash([]);
-      drawBadge(ctx, px, pad.t + ch + 18, 'P1=' + p1.toFixed(2), '#4ecdc4');
+      drawBadge(ctx, px, pad.t + ch + 18, 'P1=' + p1.toFixed(2), C.p1Badge);
     }
   }
 
@@ -278,7 +279,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     ctx.roundRect(bx, y - bh / 2, bw, bh, 4);
     ctx.fill();
     // Text
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = C.badgeText;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, x, y);
