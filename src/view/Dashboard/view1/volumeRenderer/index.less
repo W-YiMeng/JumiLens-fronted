@@ -5,694 +5,688 @@
   overflow: hidden;
   background: transparent;
 
-  canvas {
-    display: block;
-  }
+  canvas { display: block; }
 
   .volume-loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
+    position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    padding: 8px 16px;
+    color: #fff; padding: 8px 16px;
     border-radius: 4px;
-    font-size: 14px;
-    z-index: 100;
-    pointer-events: none;
+    font-size: clamp(11px, 1.1vw, 16px);
+    z-index: 100; pointer-events: none;
   }
 }
 
-// ── Time Controls overlay (YG base + main reference) ──
-.time-controls {
+// ═══════════════════════════════════════════════════
+// Panel toggle button — scale with viewport
+// ═══════════════════════════════════════════════════
+@btn-size: clamp(32px, 3vw, 48px);
+@panel-w: clamp(250px, 20vw, 400px);
+
+.panel-toggle-btn {
   position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
+  top: clamp(8px, 1vw, 14px);
+  right: clamp(8px, 1vw, 14px);
+  z-index: 60;
+  width: @btn-size; height: @btn-size;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(6px);
-  padding: 10px 20px;
-  border-radius: 8px;
-  min-width: 520px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: clamp(14px, 1.4vw, 22px);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.25s ease;
 
-  .time-main {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
   }
 
-  .play-btn {
-    cursor: pointer;
-    background: none;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #fff;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    transition: background 0.15s;
+  &.open {
+    right: calc(@panel-w + clamp(8px, 1vw, 14px));
+    background: rgba(220, 50, 50, 0.25);
+    border-color: rgba(255, 100, 100, 0.5);
+  }
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.15);
+  .panel-toggle-icon { line-height: 1; }
+}
+
+// ═══════════════════════════════════════════════════
+// TF Panel — embedded mode (inline, fills parent)
+// ═══════════════════════════════════════════════════
+.tf-panel-embedded {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+}
+
+// ═══════════════════════════════════════════════════
+// Side panel — floating mode (toggleable overlay)
+// ═══════════════════════════════════════════════════
+.tf-panel {
+  position: absolute;
+  top: clamp(8px, 1vw, 14px);
+  right: calc(-1 * @panel-w);
+  width: @panel-w;
+  max-height: calc(100vh - clamp(40px, 4vw, 60px));
+  z-index: 55;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(10px);
+  border-radius: clamp(8px, 0.8vw, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow-y: auto;
+  transition: right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  display: flex; flex-direction: column;
+
+  &.visible {
+    right: clamp(8px, 1vw, 14px);
+  }
+
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+}
+
+.tf-panel-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.tf-panel-tab {
+  flex: 1;
+  background: none; border: none;
+  color: rgba(255, 255, 255, 0.45);
+  padding: clamp(6px, 0.7vw, 10px) 0;
+  font-size: clamp(11px, 1vw, 15px);
+  cursor: pointer;
+  transition: all 0.15s;
+  border-bottom: 2px solid transparent;
+  letter-spacing: 0.3px;
+
+  &:hover { color: rgba(255, 255, 255, 0.75); background: rgba(255,255,255,0.04); }
+  &.active {
+    color: #fff;
+    border-bottom-color: #4fc3f7;
+    background: rgba(79, 195, 247, 0.08);
+  }
+}
+
+.tf-panel-body {
+  padding: clamp(6px, 0.6vw, 12px) clamp(8px, 0.7vw, 14px);
+  flex: 1; overflow-y: auto;
+}
+
+.tf-tab-content {
+  display: flex; flex-direction: column;
+  gap: clamp(4px, 0.4vw, 8px);
+}
+
+.tf-section-title {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: clamp(9px, 0.85vw, 12px);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+// ── TF ramp ──
+.tf-ramp {
+  width: 100%;
+  height: clamp(28px, 3.5vw, 48px);
+  border-radius: 3px;
+  cursor: pointer; display: block;
+}
+
+.tf-hint {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: clamp(8px, 0.7vw, 11px);
+  text-align: center;
+}
+
+// ── Point editor ──
+.tf-point-editor {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(255,255,255,0.08);
+
+  .tf-point-row {
+    display: flex; align-items: center; gap: 4px;
+
+    label {
+      color: rgba(255,255,255,0.5);
+      font-size: clamp(9px, 0.8vw, 12px);
+      width: clamp(24px, 3vw, 36px);
     }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      flex: 1; height: 3px; border-radius: 2px;
+      background: rgba(255,255,255,0.2);
+      outline: none; cursor: pointer;
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #ffdd00;
+	  }
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none; appearance: none;
+      width: clamp(22px, 2.5vw, 30px);
+      height: clamp(14px, 1.5vw, 20px);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 2px; cursor: pointer;
+      padding: 0; background: none;
+      &::-webkit-color-swatch-wrapper { padding: 0; }
+    }
+
+    span {
+      color: rgba(255,255,255,0.65);
+      font-size: clamp(9px, 0.8vw, 12px);
+      min-width: 24px; text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// ── Generic panel controls ──
+.tf-controls {
+  display: flex; gap: 6px;
+  label {
+    color: rgba(255,255,255,0.6);
+    font-size: clamp(9px, 0.8vw, 12px);
+    display: flex; align-items: center; gap: 3px;
+    flex: 1;
+  }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    outline: none; cursor: pointer;
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 10px; height: 10px; border-radius: 50%; background: #fff;
+    }
+  }
+}
+
+.tf-grad-controls {
+  padding-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  label {
+    color: rgba(255,255,255,0.6);
+    font-size: clamp(9px, 0.8vw, 12px);
+    display: flex; align-items: center; gap: 4px; margin-bottom: 2px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: clamp(55px, 7vw, 90px); height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.2); outline: none; cursor: pointer;
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px; height: 10px; border-radius: 50%; background: #4fc3f7;
+    }
+  }
+  span {
+    color: rgba(255,255,255,0.6);
+    font-size: clamp(9px, 0.8vw, 12px);
+    min-width: 24px; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// ── Diff toggles ──
+.tf-diff-toggles {
+  display: flex; gap: 6px; margin-bottom: 4px;
+  // 子开关缩进
+  &.sub {
+    margin-left: clamp(10px, 1vw, 16px);
+    padding-left: clamp(6px, 0.6vw, 10px);
+    border-left: 1px solid rgba(255,255,255,0.12);
+  }
+  // 主开关高亮
+  .tf-diff-toggle.master {
+    &.active {
+      border-color: rgba(255, 215, 0, 0.5);
+      background: rgba(255, 215, 0, 0.12);
+      color: #ffd700;
+    }
+  }
+  .tf-diff-toggle {
+    display: flex; align-items: center; gap: 4px;
+    padding: clamp(3px, 0.3vw, 6px) clamp(6px, 0.6vw, 10px);
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    font-size: clamp(9px, 0.8vw, 12px);
+    color: rgba(255,255,255,0.45);
+    transition: all 0.15s; user-select: none;
+    &.active {
+      color: rgba(255,255,255,0.9);
+      border-color: rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.1);
+    }
+  }
+  .tf-diff-toggle-swatch { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .tf-diff-toggle-orig { background: rgba(255,255,255,0.6); }
+  .tf-diff-toggle-diff { background: linear-gradient(135deg, #ff3030 50%, #3060ff 50%); }
+}
+
+// Shared label+range+span pattern inside diff / tab-content
+.tf-diff-controls,
+.tf-tab-content {
+  > label {
+    color: rgba(255,255,255,0.6);
+    font-size: clamp(9px, 0.8vw, 12px);
+    display: flex; align-items: center; gap: 4px; margin-bottom: 2px;
+  }
+  > input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: clamp(55px, 7vw, 90px); height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.2); outline: none; cursor: pointer;
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b;
+    }
+  }
+  > span {
+    color: rgba(255,255,255,0.6);
+    font-size: clamp(9px, 0.8vw, 12px);
+    min-width: 24px; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tf-cat-select {
+    background: rgba(255,255,255,0.08);
+    color: #fff; border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px; padding: 2px 4px;
+    font-size: clamp(9px, 0.8vw, 12px);
+    cursor: pointer; outline: none; max-width: 180px;
+    option { background: #222; color: #fff; }
+  }
+}
+
+.tf-percentile-controls {
+  padding-top: 4px; margin-top: 2px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  label {
+    color: rgba(255,255,255,0.55);
+    font-size: clamp(9px, 0.8vw, 12px);
+    display: flex; align-items: center; gap: 4px; margin-bottom: 1px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: clamp(50px, 6.5vw, 80px); height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.18); outline: none; cursor: pointer;
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px; height: 10px; border-radius: 50%; background: #4fc3f7;
+    }
+  }
+  .tf-percentile-value {
+    display: block;
+    color: rgba(255,255,255,0.25);
+    font-size: clamp(7px, 0.6vw, 10px);
+    margin-bottom: 2px; font-variant-numeric: tabular-nums;
+  }
+}
+
+// ── Lighting ──
+.tf-light-row {
+  display: flex; align-items: center;
+  gap: clamp(4px, 0.5vw, 8px); margin-bottom: 3px;
+  label {
+    color: rgba(255,255,255,0.6);
+    font-size: clamp(9px, 0.8vw, 12px);
+    width: clamp(32px, 3.5vw, 44px);
+  }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.22); outline: none; cursor: pointer;
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 10px; height: 10px; border-radius: 50%; background: #fff;
+    }
+  }
+  span {
+    color: rgba(255,255,255,0.7);
+    font-size: clamp(9px, 0.8vw, 12px);
+    min-width: 30px; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// Time Controls — inline layout (hosted by View1 flex container)
+// ═══════════════════════════════════════════════════
+.time-controls {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 0;
+  padding: clamp(4px, 0.5vw, 10px) clamp(8px, 0.8vw, 16px);
+  display: flex; flex-direction: column;
+  gap: clamp(3px, 0.35vw, 6px);
+  border: none;
+  overflow-y: auto;
+}
+
+// ── Top bar ──
+.time-bar {
+  display: flex; align-items: center;
+  gap: clamp(6px, 0.8vw, 14px);
+  padding-bottom: clamp(6px, 0.5vw, 10px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+
+  .play-btn {
+    cursor: pointer; background: none;
+    border: 1px solid rgba(255,255,255,0.25); color: #fff;
+    width: clamp(26px, 2.5vw, 36px);
+    height: clamp(26px, 2.5vw, 36px);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(11px, 1vw, 15px);
+    transition: background 0.15s; flex-shrink: 0;
+    &:hover { background: rgba(255,255,255,0.12); }
   }
 
   .time-slider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 360px;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, 0.25);
-    outline: none;
-    cursor: pointer;
-
+    -webkit-appearance: none; appearance: none;
+    flex: 1; min-width: 120px;
+    height: clamp(3px, 0.35vw, 5px); border-radius: 2px;
+    background: rgba(255,255,255,0.2); outline: none; cursor: pointer;
     &::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #fff;
-      cursor: pointer;
-    }
-  }
-
-  .speed-select {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    padding: 3px 6px;
-    font-size: 12px;
-    cursor: pointer;
-    outline: none;
-
-    option {
-      background: #222;
-      color: #fff;
+      -webkit-appearance: none; appearance: none;
+      width: clamp(12px, 1.1vw, 18px);
+      height: clamp(12px, 1.1vw, 18px);
+      border-radius: 50%; background: #fff;
     }
   }
 
   .step-label {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-    min-width: 80px;
-    text-align: center;
+    color: rgba(255,255,255,0.8);
+    font-size: clamp(11px, 1vw, 15px);
+    min-width: clamp(70px, 8vw, 100px); text-align: center;
+    font-variant-numeric: tabular-nums; flex-shrink: 0;
   }
 
-  // ── YG: Thumbnail strip ──
-  .thumb-strip {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  .speed-select {
+    background: rgba(255,255,255,0.08); color: #fff;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
+    padding: clamp(2px, 0.25vw, 4px) clamp(4px, 0.4vw, 8px);
+    font-size: clamp(10px, 0.9vw, 13px); cursor: pointer; outline: none;
+    option { background: #222; color: #fff; }
   }
 
-  .thumb-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .thumb-control {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-
-    span {
-      color: rgba(255, 255, 255, 0.65);
-      font-size: 10px;
-      min-width: 62px;
+  .ref-badge-inline {
+    display: flex; align-items: center;
+    gap: clamp(4px, 0.4vw, 8px); flex-shrink: 0;
+    .ref-label { color: rgba(255,255,255,0.45); font-size: clamp(9px, 0.8vw, 12px); }
+    .ref-value {
+      background: rgba(255,215,0,0.15);
+      border: 1px solid rgba(255,215,0,0.35);
+      color: #ffd700; border-radius: 4px;
+      padding: clamp(1px, 0.15vw, 3px) clamp(5px, 0.5vw, 10px);
+      font-size: clamp(11px, 1vw, 15px); font-weight: 600;
     }
-
-    select {
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 11px;
-
-      option {
-        background: #222;
-        color: #fff;
-      }
-    }
-
-    .thumb-btn {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 11px;
-      cursor: pointer;
-      transition: background 0.12s ease, border-color 0.12s ease;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-
-      &.active {
-        background: rgba(80, 180, 255, 0.3);
-        border-color: rgba(80, 180, 255, 0.6);
-      }
-    }
-
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 90px;
-      height: 3px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.2);
-      outline: none;
-      cursor: pointer;
-
-      &::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #fff;
-      }
-    }
-
-    .thumb-range {
-      min-width: 70px;
-      text-align: right;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 10px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    // ── Main: reference step selector ──
-    &.ref-selector {
-      .ref-label {
-        color: #ffd700;
-        font-weight: 600;
-      }
-      .ref-badge {
-        background: rgba(212, 175, 55, 0.2);
-        border: 1px solid rgba(212, 175, 55, 0.4);
-        color: #ffd700;
-        border-radius: 4px;
-        padding: 1px 8px;
-        font-size: 12px;
-        font-weight: 600;
-      }
-      .ref-hint {
-        color: rgba(255, 255, 255, 0.3);
-        font-size: 9px;
-        min-width: auto;
-      }
-    }
-  }
-
-  .thumb-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .thumb-label {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 10px;
-    width: 60px;
-    text-align: right;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-
-  .thumbs {
-    display: flex;
-    gap: 6px;
-  }
-
-  .thumb {
-    width: 110px;
-    height: 54px;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.08);
-    background-size: cover;
-    background-position: center;
-    position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-    cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-
-    .thumb-step {
-      position: absolute;
-      bottom: 4px;
-      right: 6px;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.7);
-      text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
-    }
-
-    // ── Main: reference step star ──
-    .thumb-ref-star {
-      position: absolute;
-      top: 2px;
-      left: 4px;
-      color: #ffd700;
-      font-size: 12px;
-      text-shadow: 0 0 4px rgba(255, 215, 0, 0.6);
-      z-index: 2;
-    }
-
-    &.reference {
-      box-shadow: inset 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 6px rgba(255, 215, 0, 0.2);
-    }
-  }
-
-  .thumb:hover {
-    transform: translateY(-1px);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 2px 6px rgba(0, 0, 0, 0.3);
-  }
-
-  .thumb::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: var(--intensity, 0.2);
-    mix-blend-mode: screen;
-  }
-
-  .thumb.low::after {
-    background: radial-gradient(circle at 30% 40%, rgba(80, 180, 255, 1), rgba(20, 40, 90, 0.3));
-  }
-
-  .thumb.high::after {
-    background: radial-gradient(circle at 35% 45%, rgba(255, 150, 90, 1), rgba(120, 20, 0, 0.4));
+    .ref-hint { color: rgba(255,255,255,0.25); font-size: clamp(8px, 0.7vw, 11px); }
   }
 }
 
-// ── Transfer Function Editor overlay ──
-.tf-editor {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
-  border-radius: 8px;
-  padding: 12px;
-  z-index: 50;
-  min-width: 240px;
+// ── Thumbnail rows — single row, horizontal scroll ──
+.thumb-rows {
+  display: flex; align-items: flex-start;
+  gap: clamp(3px, 0.35vw, 6px);
+}
 
-  .tf-title {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+.thumb-row-label {
+  color: rgba(255,255,255,0.5);
+  font-size: clamp(9px, 0.85vw, 12px);
+  text-transform: uppercase; letter-spacing: 0.4px;
+  min-width: clamp(45px, 5vw, 65px);
+  text-align: right; padding-top: 4px; flex-shrink: 0;
+}
+
+.thumb-cards {
+  display: flex; gap: clamp(5px, 0.5vw, 10px);
+  flex-wrap: nowrap;            // ← NEVER wrap
+  overflow-x: auto;             // ← horizontal scroll when needed
+  flex: 1;
+  padding-bottom: 4px;
+
+  &::-webkit-scrollbar { height: 3px; }
+  &::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+}
+
+.thumb-card {
+  width: clamp(140px, 16vw, 280px);
+  flex-shrink: 0;               // ← prevent shrinking
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 2px 3px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+
+  &:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
   }
 
-  .tf-ramp {
+  &.reference {
+    border-color: rgba(255,215,0,0.45);
+    background: rgba(255,215,0,0.08);
+
+    .thumb-card-label { color: #ffd700; font-weight: 600; }
+  }
+
+  .thumb-card-img {
     width: 100%;
-    height: 36px;
-    border-radius: 3px;
-    cursor: pointer;
-    display: block;
+    aspect-ratio: 4 / 3;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    background-size: cover; background-position: center;
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
   }
 
-  .tf-hint {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 10px;
-    margin-top: 6px;
-    text-align: center;
+  .thumb-card-loading {
+    color: rgba(255,255,255,0.2);
+    font-size: clamp(9px, 0.8vw, 12px);
   }
 
-  .tf-point-editor {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-
-    .tf-point-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px;
-
-      label {
-        color: rgba(255, 255, 255, 0.55);
-        font-size: 10px;
-        width: 32px;
-        text-transform: uppercase;
-      }
-
-      input[type="range"] {
-        -webkit-appearance: none;
-        appearance: none;
-        flex: 1;
-        height: 3px;
-        border-radius: 2px;
-        background: rgba(255, 255, 255, 0.25);
-        outline: none;
-        cursor: pointer;
-
-        &::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: #ffdd00;
-        }
-      }
-
-      input[type="color"] {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 28px;
-        height: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 3px;
-        cursor: pointer;
-        padding: 0;
-        background: none;
-
-        &::-webkit-color-swatch-wrapper {
-          padding: 0;
-        }
-      }
-
-      span {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 10px;
-        min-width: 28px;
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-      }
-    }
+  .thumb-card-star {
+    position: absolute; top: 3px; left: 5px;
+    color: #ffd700;
+    font-size: clamp(12px, 1.2vw, 18px);
+    text-shadow: 0 0 6px rgba(255,215,0,0.5); z-index: 2;
   }
 
-  .tf-controls {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
+  // Expand button — appears on hover
+  .thumb-card-expand {
+    position: absolute; top: 2px; right: 2px;
+    width: clamp(20px, 2vw, 28px);
+    height: clamp(20px, 2vw, 28px);
+    border-radius: 4px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
+    font-size: clamp(11px, 1vw, 15px);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s; z-index: 3;
+    &:hover { background: rgba(255,255,255,0.2); color: #fff; }
+  }
+  &:hover .thumb-card-expand,
+	&:hover .thumb-card-remove { opacity: 1; }
 
-    label {
-      color: rgba(255, 255, 255, 0.65);
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
+	  // Remove button — appears on hover, positioned at top-left
+	  .thumb-card-remove {
+	    position: absolute; top: 2px; left: 2px;
+	    width: clamp(18px, 1.8vw, 24px);
+	    height: clamp(18px, 1.8vw, 24px);
+	    border-radius: 4px;
+	    background: rgba(180, 20, 20, 0.55);
+	    border: 1px solid rgba(255, 80, 80, 0.3);
+	    color: rgba(255, 255, 255, 0.8);
+	    font-size: clamp(9px, 0.9vw, 12px);
+	    cursor: pointer; display: flex; align-items: center; justify-content: center;
+	    opacity: 0; transition: opacity 0.15s; z-index: 3;
+	    line-height: 1;
+	    &:hover { background: rgba(220, 40, 40, 0.7); color: #fff; border-color: rgba(255, 100, 100, 0.6); }
+	  }
 
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 60px;
-      height: 3px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.25);
-      outline: none;
-      cursor: pointer;
+  .thumb-card-label {
+    color: rgba(255,255,255,0.65);
+    font-size: clamp(9px, 0.85vw, 12px);
+    font-variant-numeric: tabular-nums;
+  }
+}
 
-      &::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #fff;
-      }
+// ── Controls section ──
+.thumb-ctls {
+  display: flex; gap: clamp(8px, 1vw, 16px); flex-wrap: wrap;
+  padding-top: clamp(4px, 0.4vw, 8px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+
+  // Standalone mode: vertical layout in top-right tab panel
+  &.standalone {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    border-top: none;
+    flex-wrap: nowrap;
+
+    .thumb-ctl-group {
+      flex-wrap: wrap;
     }
   }
+}
 
-  // ── Main: Gradient Weight ──
-  .tf-grad-controls {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
+.thumb-ctl-group {
+  display: flex; align-items: center;
+  gap: clamp(3px, 0.3vw, 6px);
 
-    .tf-grad-header {
-      color: rgba(255, 255, 255, 0.55);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
+  label {
+    color: rgba(255,255,255,0.5);
+    font-size: clamp(9px, 0.85vw, 12px);
+    min-width: clamp(28px, 3vw, 40px);
+  }
 
-    label {
-      color: rgba(255, 255, 255, 0.65);
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-bottom: 3px;
-    }
+  select {
+    background: rgba(255,255,255,0.07); color: #fff;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
+    padding: clamp(2px, 0.2vw, 4px) clamp(4px, 0.4vw, 6px);
+    font-size: clamp(9px, 0.8vw, 12px); cursor: pointer; outline: none;
+    option { background: #222; color: #fff; }
+  }
 
-    input[type="range"] {
-      -webkit-appearance: none;
-      width: 80px;
-      height: 3px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.25);
-      outline: none;
-      cursor: pointer;
-
-      &::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #4fc3f7;
-      }
-    }
-
-    span {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 10px;
-      min-width: 28px;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
+  .thumb-btn {
+    background: rgba(255,255,255,0.1); color: #fff;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
+    padding: clamp(2px, 0.2vw, 4px) clamp(6px, 0.5vw, 10px);
+    font-size: clamp(9px, 0.8vw, 12px);
+    cursor: pointer; transition: all 0.12s; white-space: nowrap;
+    &:hover { background: rgba(255,255,255,0.18); }
+    &.active {
+      background: rgba(79,195,247,0.25);
+      border-color: rgba(79,195,247,0.5);
     }
   }
 
-  // ── Main: Diff Layers ──
-  .tf-diff-controls {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-
-    .tf-diff-header {
-      color: rgba(255, 255, 255, 0.55);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-    }
-
-    .tf-diff-toggles {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 6px;
-
-      .tf-diff-toggle {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
-        border-radius: 4px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        cursor: pointer;
-        font-size: 10px;
-        color: rgba(255, 255, 255, 0.5);
-        transition: all 0.15s;
-        user-select: none;
-
-        &.active {
-          color: rgba(255, 255, 255, 0.9);
-          border-color: rgba(255, 255, 255, 0.5);
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .tf-diff-toggle-swatch {
-          width: 8px;
-          height: 8px;
-          border-radius: 2px;
-          display: inline-block;
-        }
-        .tf-diff-toggle-orig {
-          background: rgba(255, 255, 255, 0.6);
-        }
-        .tf-diff-toggle-diff {
-          background: linear-gradient(135deg, #ff3030 50%, #3060ff 50%);
-        }
-      }
-    }
-
-    label {
-      color: rgba(255, 255, 255, 0.65);
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-bottom: 3px;
-    }
-
-    input[type="range"] {
-      -webkit-appearance: none;
-      width: 80px;
-      height: 3px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.25);
-      outline: none;
-      cursor: pointer;
-
-      &::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #ff6b6b;
-      }
-    }
-
-    .tf-cat-select {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      padding: 2px 4px;
-      font-size: 10px;
-      cursor: pointer;
-      outline: none;
-      max-width: 180px;
-
-      option {
-        background: #222;
-        color: #fff;
-      }
-    }
-
-    span {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 10px;
-      min-width: 28px;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .tf-percentile-controls {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-
-      .tf-percentile-header {
-        color: rgba(255, 255, 255, 0.4);
-        font-size: 9px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        margin-bottom: 4px;
-      }
-
-      label {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 10px;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        margin-bottom: 2px;
-      }
-
-      input[type="range"] {
-        -webkit-appearance: none;
-        width: 70px;
-        height: 3px;
-        border-radius: 2px;
-        background: rgba(255, 255, 255, 0.2);
-        outline: none;
-        cursor: pointer;
-
-        &::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: #4fc3f7;
-        }
-      }
-
-      .tf-percentile-value {
-        display: block;
-        color: rgba(255, 255, 255, 0.3);
-        font-size: 8px;
-        margin-bottom: 4px;
-        font-variant-numeric: tabular-nums;
-      }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: clamp(45px, 5vw, 70px); height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.18); outline: none; cursor: pointer;
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 10px; height: 10px; border-radius: 50%; background: #fff;
     }
   }
 
-  // ── YG: Lighting ──
-  .tf-lighting {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  .ctl-range-val {
+    color: rgba(255,255,255,0.55);
+    font-size: clamp(8px, 0.7vw, 10px);
+    min-width: clamp(44px, 5vw, 60px);
+    font-variant-numeric: tabular-nums;
+  }
+}
 
-    .tf-section-title {
-      color: rgba(255, 255, 255, 0.65);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-    }
+// ═══════════════════════════════════════════════════
+// Enlarged thumbnail modal — responsive
+// ═══════════════════════════════════════════════════
+.thumb-modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+}
 
-    .tf-light-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px;
+.thumb-modal {
+  background: rgba(20,20,30,0.95);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: clamp(10px, 1vw, 16px);
+  padding: clamp(12px, 1.2vw, 20px);
+  max-width: 92vw; max-height: 92vh;
+  display: flex; flex-direction: column;
+  gap: clamp(8px, 0.8vw, 14px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
 
-      label {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 10px;
-        width: 52px;
-      }
+  .thumb-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    color: rgba(255,255,255,0.85);
+    font-size: clamp(12px, 1.2vw, 16px);
+  }
 
-      input[type="range"] {
-        -webkit-appearance: none;
-        appearance: none;
-        flex: 1;
-        height: 3px;
-        border-radius: 2px;
-        background: rgba(255, 255, 255, 0.25);
-        outline: none;
-        cursor: pointer;
+  .thumb-modal-close {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
+    width: clamp(26px, 2.5vw, 34px);
+    height: clamp(26px, 2.5vw, 34px);
+    border-radius: 50%; cursor: pointer;
+    font-size: clamp(14px, 1.3vw, 18px);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    &:hover { background: rgba(255,50,50,0.3); border-color: rgba(255,100,100,0.5); }
+  }
 
-        &::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: #fff;
-        }
-      }
+  img {
+    // Fill available space while keeping aspect ratio
+    max-width: 88vw;
+    max-height: 70vh;
+    width: auto; height: auto;
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
 
-      span {
-        color: rgba(255, 255, 255, 0.75);
-        font-size: 10px;
-        min-width: 34px;
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-      }
+  .thumb-modal-actions {
+    display: flex; gap: clamp(6px, 0.7vw, 12px); justify-content: center;
+    button {
+      background: rgba(255,255,255,0.1); color: #fff;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+      padding: clamp(5px, 0.5vw, 8px) clamp(14px, 1.4vw, 22px);
+      font-size: clamp(11px, 1vw, 14px);
+      cursor: pointer; transition: all 0.15s;
+      &:hover { background: rgba(255,255,255,0.2); }
     }
   }
 }

@@ -11,13 +11,13 @@ const Dashboard: React.FC = () => {
                 <span className='header-title'>ChinaVIS2026</span>
             </header>
             <main className='main-content'>
-                <div className='view1'>
-                    <div className='panel-title'>题目12</div>
-                    <div className='panel-body'><View1 /></div>
+                {/* ======== 左侧 60%: 3D立方体 + 传递函数 + 时间轴 ======== */}
+                <div className='left-panel'>
+                    <View1 />
                 </div>
-                <div className='view2'>
-                    <div className='panel-title'>题目3</div>
-                    <div className='panel-body'><View2 /></div>
+                {/* ======== 右侧 40%: 密度直方图 + 统计表格 ======== */}
+                <div className='right-panel'>
+                    <View2 />
                 </div>
             </main>
         </div>

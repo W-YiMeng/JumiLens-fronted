@@ -1,0 +1,100 @@
+.evolution-chart-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  .evolution-chart-title {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-align: center;
+    padding: 6px 0;
+    background: #fafafa;
+    border-bottom: 1px solid #e8e8e8;
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  .evolution-canvas-wrap {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .evolution-loading,
+  .evolution-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    font-size: 12px;
+    color: #999;
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  .evolution-error {
+    color: #ff4d4f;
+  }
+
+  .evolution-tooltip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+    background: rgba(30, 30, 40, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 10px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    min-width: 130px;
+
+    .evolution-tooltip-step {
+      color: #fff;
+      font-weight: 600;
+      font-size: 10px;
+      margin-bottom: 3px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 3px;
+    }
+
+    .evolution-tooltip-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1px 8px;
+
+      .et-label {
+        color: rgba(255, 255, 255, 0.55);
+        text-align: right;
+        font-size: 9px;
+      }
+
+      .et-value {
+        color: rgba(255, 255, 255, 0.9);
+        font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+        font-size: 9px;
+
+        &.et-hi {
+          color: #ffa940;
+        }
+        &.et-lo {
+          color: #69c0ff;
+        }
+      }
+    }
+  }
+}

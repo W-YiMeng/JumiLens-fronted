@@ -14,8 +14,6 @@ import {
   imageDataToDataURL,
   type PercentileThresholds,
 } from './diffClassifier';
-import TimeControls from './TimeControls';
-import TransferFunctionEditor from './TransferFunctionEditor';
 import './index.less';
 
 const THUMB_W = 120;
@@ -29,6 +27,11 @@ const VolumeRenderer: React.FC = observer(() => {
   const idleCallbackId = useRef<number | null>(null);
   const pendingThumbSteps = useRef<Set<number>>(new Set());
   const classLutRef = useRef<Uint8Array>(new Uint8Array(256));
+
+  // ── MobX observables (destructured for React dependency tracking) ──
+  const highlightedRange = volumeStore.highlightedRange;
+  const currentStep = volumeStore.currentStep;
+  const dataVersion = volumeStore.dataVersion;
 
   // ── Init scene ──────────────────────────────────────────────
   useEffect(() => {
@@ -57,7 +60,7 @@ const VolumeRenderer: React.FC = observer(() => {
       ro.disconnect();
       vs.dispose();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // ── Load data for current step ──────────────────────────────
@@ -91,6 +94,16 @@ const VolumeRenderer: React.FC = observer(() => {
     }
   }, [volumeStore.currentStep]);
 
+  // ── Ensure reference step data is always loaded ──────────────
+  useEffect(() => {
+    const refStep = volumeStore.referenceStep;
+    if (!volumeStore.getCachedData(refStep)) {
+      loadTimeStep(refStep).then(({ normalized, min, max }) => {
+        volumeStore.cacheData(refStep, normalized, min, max);
+      });
+    }
+  }, [volumeStore.referenceStep]);
+
   // ── Sync TF texture ─────────────────────────────────────────
   useEffect(() => {
     sceneRef.current?.buildTFTexture(volumeStore.transferFunction);
@@ -117,16 +130,15 @@ const VolumeRenderer: React.FC = observer(() => {
 
   // ── Sync diff params (main) ──────────────────────────────────
   useEffect(() => {
-    sceneRef.current?.setDiffParams(
-      volumeStore.diffOpacity,
+    sceneRef.current?.setDiffMode(volumeStore.diffMode);
+  }, [volumeStore.diffMode]);
+
+  useEffect(() => {
+    sceneRef.current?.setDiffToggles(
       volumeStore.showOriginal,
       volumeStore.showDifference
     );
-  }, [volumeStore.diffOpacity, volumeStore.showOriginal, volumeStore.showDifference]);
-
-  useEffect(() => {
-    sceneRef.current?.setDiffBaseOpacity(volumeStore.diffBaseOpacity);
-  }, [volumeStore.diffBaseOpacity]);
+  }, [volumeStore.showOriginal, volumeStore.showDifference]);
 
   // ── Sync lighting (YG) ───────────────────────────────────────
   useEffect(() => {
@@ -140,6 +152,32 @@ const VolumeRenderer: React.FC = observer(() => {
     volumeStore.lightElevation,
     volumeStore.lightIntensity,
   ]);
+
+  // ── ZYJ: Sync highlighted range from density histogram ────────
+  useEffect(() => {
+    console.log('[volumeRenderer] useEffect triggered, highlightedRange:', highlightedRange);
+    if (!highlightedRange) {
+      console.log('[volumeRenderer] clearing highlight (null range)');
+      sceneRef.current?.updateHighlightRange(null);
+      return;
+    }
+    const dataRange = volumeStore.getDataRange(currentStep);
+    console.log('[volumeRenderer] dataRange for step', currentStep, ':', dataRange);
+    if (!dataRange || dataRange.max <= dataRange.min) {
+      console.log('[volumeRenderer] invalid dataRange, clearing highlight');
+      sceneRef.current?.updateHighlightRange(null);
+      return;
+    }
+    // highlightedRange stores log10 density values (from log-scale histogram)
+    // Convert: log10 → raw → normalized [0,1]
+    const rawLow = Math.pow(10, highlightedRange.min);
+    const rawHigh = Math.pow(10, highlightedRange.max);
+    const dataSpan = dataRange.max - dataRange.min;
+    const normLow = Math.max(0, Math.min(1, (rawLow - dataRange.min) / dataSpan));
+    const normHigh = Math.max(0, Math.min(1, (rawHigh - dataRange.min) / dataSpan));
+    console.log('[volumeRenderer] converted range: log10=[', highlightedRange.min, ',', highlightedRange.max, '] raw=[', rawLow, ',', rawHigh, '] normalized=[', normLow, ',', normHigh, ']');
+    sceneRef.current?.updateHighlightRange({ min: normLow, max: normHigh });
+  }, [highlightedRange, currentStep, dataVersion]);
 
   // ── Compute percentile-based class boundaries from reference step data ──
   useEffect(() => {
@@ -166,40 +204,41 @@ const VolumeRenderer: React.FC = observer(() => {
   ]);
 
   // ── Debounced diff computation ──────────────────────────────
+  // 使用 diffStep（仅随2D缩略图点击更新）而非 currentStep（随播放/时间轴更新）
   const doComputeDiff = useCallback(() => {
     const vs = sceneRef.current;
     if (!vs) return;
 
     const refStep = volumeStore.referenceStep;
-    const curStep = volumeStore.currentStep;
+    const diffStep = volumeStore.diffStep;
     const lut = classLutRef.current;
     const categoryFilter = volumeStore.categoryFilter;
 
     const refData = volumeStore.getCachedData(refStep);
-    const curData = volumeStore.getCachedData(curStep);
-    if (!refData || !curData) return;
+    const cmpData = volumeStore.getCachedData(diffStep);
+    if (!refData || !cmpData) return;
 
     // Classify both (LUT-based, ~5ms each)
     const refClasses = classifyVolumeLUT(refData, lut);
     volumeStore._refClassesCache = refClasses;
 
-    const curClasses = classifyVolumeLUT(curData, lut);
+    const cmpClasses = classifyVolumeLUT(cmpData, lut);
 
-    // Compute diff (single pass, ~3ms)
-    const diffData = computeDiffVolume(refClasses, curClasses, categoryFilter);
-    const stats = computeDiffStats(refClasses, curClasses, categoryFilter);
+    // Compute diff (single pass, ~3ms) — categoryFilter 实时读取
+    const diffData = computeDiffVolume(refClasses, cmpClasses, categoryFilter);
+    const stats = computeDiffStats(refClasses, cmpClasses, categoryFilter);
 
     // Cache
-    volumeStore.cacheDiffStats(curStep, stats);
-    volumeStore.cacheDiffData(curStep, diffData);
+    volumeStore.cacheDiffStats(diffStep, stats);
+    volumeStore.cacheDiffData(diffStep, diffData);
 
-    // Upload to GPU for current step overlay
-    if (curStep === volumeStore.currentStep) {
+    // Upload to GPU only when 3D view step matches diff target
+    if (diffStep === volumeStore.currentStep) {
       vs.loadDiffVolume(diffData);
     }
 
     // Generate thumbnail asynchronously
-    pendingThumbSteps.current.add(curStep);
+    pendingThumbSteps.current.add(diffStep);
     scheduleThumbnails();
   }, []);
 
@@ -221,18 +260,43 @@ const VolumeRenderer: React.FC = observer(() => {
     doComputeDiff();
   }, [doComputeDiff]);
 
-  // ── Debounced diff on current step change ──────────────────
+  // ── Diff on diffStep change OR new data arrival: immediate if cached, debounced otherwise ──
+  // diffStep 仅随2D缩略图点击/Shift+Click折线图更新，不随播放/时间轴变化
   useEffect(() => {
-    scheduleDiff();
+    const step = volumeStore.diffStep;
+    // If data already cached, compute diff immediately (no debounce)
+    if (volumeStore.getCachedData(step)) {
+      scheduleDiffImmediate();
+    } else {
+      scheduleDiff();
+    }
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [volumeStore.currentStep, scheduleDiff]);
+  }, [volumeStore.diffStep, volumeStore.dataVersion, scheduleDiff, scheduleDiffImmediate]);
 
-  // ── Debounced diff on category filter change ────────────────
+  // ── Immediate diff on category filter change ────────────────
   useEffect(() => {
-    scheduleDiff();
-  }, [volumeStore.categoryFilter, scheduleDiff]);
+    scheduleDiffImmediate();
+  }, [volumeStore.categoryFilter, scheduleDiffImmediate]);
+
+  // ── Show/hide diff overlay: 仅当 3D 视图步 = diff步 且开启diff模式时显示 ──
+  useEffect(() => {
+    const vs = sceneRef.current;
+    if (!vs) return;
+
+    const match = volumeStore.currentStep === volumeStore.diffStep;
+    const show = match && volumeStore.diffMode;
+    vs.setDiffVisible(show);
+
+    // 当匹配时，确保 diff 数据已上传
+    if (show) {
+      const cached = volumeStore.getCachedDiffData(volumeStore.diffStep);
+      if (cached) {
+        vs.loadDiffVolume(cached);
+      }
+    }
+  }, [volumeStore.currentStep, volumeStore.diffStep, volumeStore.diffMode]);
 
   // ── Process thumbnails in idle time ─────────────────────────
   const processThumbBatch = useCallback(() => {
@@ -335,33 +399,35 @@ const VolumeRenderer: React.FC = observer(() => {
 
     const run = async () => {
       const steps = volumeStore.thumbnailSteps;
-      for (let i = 0; i < steps.length; i++) {
-        const step = steps[i];
-        if (cancelled) return;
+      if (steps.length === 0) return;
 
-        const cached = volumeStore.getCachedData(step);
-        let data = cached;
-        if (!data) {
-          try {
-            const loaded = await loadTimeStep(step);
-            if (cancelled) return;
+      // ── Phase 1: Parallel preload all uncached data ──
+      const loadPromises = steps.map(async (step) => {
+        if (volumeStore.getCachedData(step)) return;
+        try {
+          const loaded = await loadTimeStep(step);
+          if (!cancelled) {
             volumeStore.cacheData(step, loaded.normalized, loaded.min, loaded.max);
-            data = loaded.normalized;
-          } catch {
-            continue;
           }
-        }
+        } catch { /* skip */ }
+      });
+      await Promise.all(loadPromises);
+      if (cancelled) return;
 
+      // ── Phase 2: GPU render each step sequentially (shared state) ──
+      for (let i = 0; i < steps.length; i++) {
+        if (cancelled) return;
+        const step = steps[i];
+        const data = volumeStore.getCachedData(step);
         if (!data) continue;
 
+        // Reference data for diff mode
         let refStep: number | null = null;
         if (volumeStore.thumbnailCompareMode === 'prev') {
           refStep = i > 0 ? steps[i - 1] : null;
         } else if (volumeStore.thumbnailCompareMode === 'ref') {
           refStep = steps[volumeStore.thumbnailCompareRefIndex] ?? null;
-          if (refStep === step) {
-            refStep = i > 0 ? steps[i - 1] : null;
-          }
+          if (refStep === step) refStep = i > 0 ? steps[i - 1] : null;
         }
 
         let refData: Float32Array | undefined;
@@ -373,29 +439,30 @@ const VolumeRenderer: React.FC = observer(() => {
               if (cancelled) return;
               volumeStore.cacheData(refStep, loadedPrev.normalized, loadedPrev.min, loadedPrev.max);
               refData = loadedPrev.normalized;
-            } catch {
-              refData = undefined;
-            }
+            } catch { refData = undefined; }
           }
         }
+
+        // ── Render at display resolution (360×270 = 4:3, more than enough for UI) ──
+        const LOW_SIZE = { width: 360, height: 270 };
+        const HIGH_SIZE = { width: 240, height: 180 };
 
         if (!volumeStore.getThumbnailImage(step, 'low')) {
           const img =
             volumeStore.thumbnailCompareMode !== 'off' && refData
               ? vs.renderThumbnailDiff(
-                  data,
-                  refData,
+                  data, refData,
                   volumeStore.thumbnailLowRange,
                   volumeStore.thumbnailView,
                   volumeStore.thumbnailCompareOverlay,
-                  { width: 150, height: 75 }
+                  LOW_SIZE
                 )
               : vs.renderThumbnail(
                   data,
                   volumeStore.thumbnailLowRange,
                   [0.3, 0.8, 1.0],
                   volumeStore.thumbnailView,
-                  { width: 150, height: 75 }
+                  LOW_SIZE
                 );
           volumeStore.setThumbnailImage(step, 'low', img);
         }
@@ -404,19 +471,18 @@ const VolumeRenderer: React.FC = observer(() => {
           const img =
             volumeStore.thumbnailCompareMode !== 'off' && refData
               ? vs.renderThumbnailDiff(
-                  data,
-                  refData,
+                  data, refData,
                   volumeStore.thumbnailHighRange,
                   volumeStore.thumbnailView,
                   volumeStore.thumbnailCompareOverlay,
-                  { width: 150, height: 75 }
+                  HIGH_SIZE
                 )
               : vs.renderThumbnail(
                   data,
                   volumeStore.thumbnailHighRange,
                   [1.0, 0.55, 0.2],
                   volumeStore.thumbnailView,
-                  { width: 150, height: 75 }
+                  HIGH_SIZE
                 );
           volumeStore.setThumbnailImage(step, 'high', img);
         }
@@ -424,9 +490,7 @@ const VolumeRenderer: React.FC = observer(() => {
     };
 
     run();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [
     volumeStore.thumbnailView,
     volumeStore.thumbnailLowRange[0],
@@ -453,39 +517,11 @@ const VolumeRenderer: React.FC = observer(() => {
     };
   }, []);
 
-  // ── Compute sorted by change ────────────────────────────────
-  const handleSortByChange = useCallback(() => {
-    const entries: { step: number; total: number }[] = [];
-    for (const s of volumeStore.comparisonSteps) {
-      if (s === volumeStore.referenceStep) continue;
-      const stats = volumeStore.getCachedDiffStats(s);
-      if (stats) {
-        entries.push({ step: s, total: stats.growthCount + stats.declineCount });
-      }
-    }
-    entries.sort((a, b) => b.total - a.total);
-    volumeStore.setSortedByChange(entries.map((e) => e.step));
-  }, []);
-
-  const handleJumpToStep = useCallback((step: number) => {
-    volumeStore.setTimeStep(step);
-  }, []);
-
-  const handleSetReference = useCallback((step: number) => {
-    volumeStore.setReferenceStep(step);
-  }, []);
-
   return (
     <div className="volume-renderer-root" ref={containerRef}>
-      <TimeControls
-        onSortByChange={handleSortByChange}
-        onJumpToStep={handleJumpToStep}
-        onSetReference={handleSetReference}
-      />
-      <TransferFunctionEditor />
       {volumeStore.isLoading && (
         <div className="volume-loading">
-          <span>Loading step {volumeStore.currentStep}...</span>
+          <span>加载中 Step {volumeStore.currentStep}...</span>
         </div>
       )}
     </div>

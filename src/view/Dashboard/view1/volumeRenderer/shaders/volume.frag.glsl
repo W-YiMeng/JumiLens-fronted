@@ -16,8 +16,7 @@ uniform float uGradLow;
 uniform float uGradHigh;
 uniform float uGradWeight;
 uniform bool uHasDiff;
-uniform float uDiffOpacity;
-uniform float uDiffBaseOpacity;
+uniform bool uDiffMode;
 uniform bool uShowOriginal;
 uniform bool uShowDifference;
 // ── YG lighting / preview uniforms ──
@@ -32,6 +31,9 @@ uniform vec3 uPreviewColorPos;
 uniform vec3 uPreviewColorNeg;
 uniform float uPreviewDiffScale;
 uniform int uPreviewOverlay;
+// ── ZYJ: 密度直方图筛选高亮 ──
+uniform vec2 uHighlightRange;
+uniform float uHighlightIntensity;
 
 varying vec2 vUv;
 
@@ -73,15 +75,14 @@ vec3 calcGradient(vec3 texCoord, out float mag) {
     return mag < 1e-4 ? vec3(0.0) : -g / mag;
 }
 
-vec3 phongShade(vec3 color, vec3 normal, vec3 lightDir, vec3 viewDir, float intensity) {
+vec3 phongShade(vec3 color, vec3 normal, vec3 lightDir, vec3 viewDir) {
     vec3 halfDir = normalize(lightDir + viewDir);
     float diff = max(dot(normal, lightDir), 0.0);
     float spec = pow(max(dot(normal, halfDir), 0.0), 32.0);
-    float ambient = 0.12;
-    float diffuse = 0.75;
-    float specular = 0.45;
-    float li = clamp(intensity, 0.0, 3.0);
-    return color * (ambient + li * diffuse * diff) + vec3(1.0) * li * specular * spec;
+    float ambient = 0.08;
+    float diffuse = 0.6;
+    float specular = 0.32;
+    return color * (ambient + diffuse * diff) + vec3(1.0) * specular * spec;
 }
 
 void main() {
@@ -103,7 +104,7 @@ void main() {
     tNear = max(tNear, 0.0);
 
     vec3 boxSize = uBoxMax - uBoxMin;
-    vec3 lightDir = normalize(uLightDir);
+    vec3 lightDir = normalize(vec3(1.0, 1.0, -0.5));
     int maxSteps = int(ceil((tFar - tNear) / uStepSize));
     maxSteps = min(maxSteps, 512);
 
@@ -121,7 +122,7 @@ void main() {
         vec3 texCoord = (pos - uBoxMin) / boxSize;
         texCoord = clamp(texCoord, 0.0, 1.0);
 
-        float density = clamp(texture(uVolume, texCoord).r * uDensityScale, 0.0, 1.0);
+        float density = texture(uVolume, texCoord).r;
         float diffVal = 0.0;
         if (uHasDiff) {
             diffVal = texture(uDiffVolume, texCoord).r;
@@ -154,47 +155,102 @@ void main() {
             accum.rgb += ma * tfColor.a * tfColor.rgb;
             accum.a += ma * tfColor.a;
         }
-        // ── Main Diff Overlay Mode ──
-        else if (density > 0.005 || abs(diffVal) > 0.01) {
+        // ── 普通模式 / 差异分析模式 ──
+        else if (density > 0.005 || (uHasDiff && abs(diffVal) > 0.01)) {
             vec4 tfColor = transferFunction(density);
+            float alpha = tfColor.a;
 
-            // In diff mode, ignore TF opacity — use subdued density-driven alpha
-            float alpha;
-            if (uHasDiff) {
-                alpha = density * uDiffBaseOpacity;
-            } else {
-                alpha = tfColor.a;
+            // ── ZYJ: 密度直方图筛选（计算体素是否在选中范围内）──
+            float inRange = 1.0;  // 默认全部可见
+            if (uHighlightIntensity > 0.0 && uHighlightRange.x < uHighlightRange.y) {
+                float edge = 0.003;
+                inRange = smoothstep(uHighlightRange.x - edge, uHighlightRange.x, density)
+                        * (1.0 - smoothstep(uHighlightRange.y, uHighlightRange.y + edge, density));
             }
-            if (alpha > 0.005 || abs(diffVal) > 0.01) {
+
+            // 判断是否为分类变化体素
+            bool isChanged = uHasDiff && abs(diffVal) > 0.01;
+
+            // uDiffMode=true: 仅渲染变化体素，由子开关控制显示内容
+            // uDiffMode=false: 渲染全部体素 (正常模式)
+            bool showHere;
+            if (uDiffMode) {
+                showHere = isChanged && (uShowOriginal || uShowDifference);
+            } else {
+                showHere = alpha > 0.005;
+            }
+
+            if (showHere) {
                 float gradMag;
                 vec3 normal = calcGradient(texCoord, gradMag);
 
-                float alphaCorrected = 1.0 - pow(1.0 - alpha, stepRatio);
-                if (uGradWeight > 0.0 && gradMag > 1e-4) {
-                    float gradFactor = smoothstep(uGradLow, uGradHigh, gradMag);
-                    alphaCorrected = mix(alphaCorrected, alphaCorrected * gradFactor, uGradWeight);
+                float alphaCorrected;
+                if (uDiffMode) {
+                    // 差异模式: 根据子开关决定混合方式
+                    if (uShowOriginal && uShowDifference) {
+                        // 两个都开: TF颜色打底 + 红/蓝叠加
+                        alphaCorrected = 1.0 - pow(1.0 - alpha, stepRatio);
+                        if (uGradWeight > 0.0 && gradMag > 1e-4) {
+                            float gradFactor = smoothstep(uGradLow, uGradHigh, gradMag);
+                            alphaCorrected = mix(alphaCorrected, alphaCorrected * gradFactor, uGradWeight);
+                        }
+                        // Phong 光照
+                        if (length(normal) > 1e-4) {
+                            vec3 vDir = normalize(uCameraPos - pos);
+                            tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir);
+                        }
+                        // 红/蓝叠加
+                        vec3 diffColor = diffVal > 0.0
+                            ? vec3(0.95, 0.12, 0.08)
+                            : vec3(0.08, 0.18, 0.95);
+                        float intensity = clamp(abs(diffVal) * 0.55, 0.0, 1.0);
+                        tfColor.rgb = mix(tfColor.rgb, diffColor, intensity);
+                        alphaCorrected = max(alphaCorrected, intensity * 0.5);
+
+                    } else if (uShowOriginal) {
+                        // 仅原始体: TF颜色 + Phong光照
+                        alphaCorrected = 1.0 - pow(1.0 - alpha, stepRatio);
+                        if (uGradWeight > 0.0 && gradMag > 1e-4) {
+                            float gradFactor = smoothstep(uGradLow, uGradHigh, gradMag);
+                            alphaCorrected = mix(alphaCorrected, alphaCorrected * gradFactor, uGradWeight);
+                        }
+                        if (length(normal) > 1e-4) {
+                            vec3 vDir = normalize(uCameraPos - pos);
+                            tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir);
+                        }
+
+                    } else {
+                        // 仅变化着色: 纯红/蓝着色
+                        vec3 diffColor = diffVal > 0.0
+                            ? vec3(0.95, 0.12, 0.08)
+                            : vec3(0.08, 0.18, 0.95);
+                        float intensity = clamp(abs(diffVal) * 0.55, 0.0, 1.0);
+                        tfColor.rgb = diffColor;
+                        alphaCorrected = intensity * 0.8;
+                    }
+                } else {
+                    // 普通模式: TF + Phong光照
+                    alphaCorrected = 1.0 - pow(1.0 - alpha, stepRatio);
+                    if (uGradWeight > 0.0 && gradMag > 1e-4) {
+                        float gradFactor = smoothstep(uGradLow, uGradHigh, gradMag);
+                        alphaCorrected = mix(alphaCorrected, alphaCorrected * gradFactor, uGradWeight);
+                    }
+                    if (length(normal) > 1e-4) {
+                        vec3 vDir = normalize(uCameraPos - pos);
+                        tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir);
+                    }
+                    // ── ZYJ: 密度直方图筛选 ──
+                    if (uHighlightIntensity > 0.0) {
+                        if (inRange < 0.5) {
+                            // 范围外: 完全不可见
+                            alphaCorrected = 0.0;
+                        }
+                    }
                 }
 
-                if (uShowOriginal && length(normal) > 1e-4) {
-                    vec3 vDir = normalize(uCameraPos - pos);
-                    tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir, uLightIntensity);
-                }
-
-                if (uHasDiff && uShowDifference && abs(diffVal) > 0.01) {
-                    vec3 diffColor = diffVal > 0.0
-                        ? vec3(0.95, 0.08, 0.08)
-                        : vec3(0.08, 0.15, 0.95);
-                    float intensity = clamp(abs(diffVal) * 0.6, 0.0, 1.0) * uDiffOpacity;
-                    float suppress = intensity * 0.85;
-                    tfColor.rgb = tfColor.rgb * (1.0 - suppress) + diffColor * intensity;
-                    alphaCorrected = max(alphaCorrected, intensity * 0.35);
-                }
-
-                if (uShowOriginal || (uHasDiff && uShowDifference)) {
-                    float ma = 1.0 - accum.a;
-                    accum.rgb += ma * alphaCorrected * tfColor.rgb;
-                    accum.a += ma * alphaCorrected;
-                }
+                float ma = 1.0 - accum.a;
+                accum.rgb += ma * alphaCorrected * tfColor.rgb;
+                accum.a += ma * alphaCorrected;
             }
         }
         t += uStepSize;

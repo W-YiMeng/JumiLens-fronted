@@ -28,12 +28,12 @@ class VolumeStore {
   gradHigh = 0.15;
   gradWeight = 0.6;
   referenceStep = 0;
+  diffStep = 0; // 差异分析对比目标步（仅随2D缩略图点击更新）
   comparisonSteps: number[] = [0];
   diffEnabled = false;
+  diffMode = false;
   showOriginal = true;
   showDifference = true;
-  diffOpacity = 0.6;
-  diffBaseOpacity = 0.08;
   categoryFilter = -1;
   classBoundaries: number[] = [];
   lowPercentile = 1;
@@ -43,6 +43,9 @@ class VolumeStore {
   thumbnailVersion = 0;
   sortedByChange: number[] = [];
 
+  // ── ZYJ: 密度直方图筛选高亮 ──
+  highlightedRange: { min: number; max: number } | null = null;
+
   // ── YG: lighting / thumbnail analysis ──
   lightAzimuth = 45; // degrees
   lightElevation = 30; // degrees
@@ -50,7 +53,7 @@ class VolumeStore {
 
   thumbnailStats = new Map<number, ThumbnailStats>();
   thumbnailImages = new Map<string, string>();
-  thumbnailSteps = [0, 20, 40, 60, 80, 99];
+  thumbnailSteps = [0];
   thumbnailLowRange: [number, number] = [0.05, 0.25];
   thumbnailHighRange: [number, number] = [0.6, 0.9];
   thumbnailView: ThumbnailView = 'current';
@@ -93,6 +96,10 @@ class VolumeStore {
 
   setTimeStep = (step: number) => {
     this.currentStep = Math.max(0, Math.min(99, Math.round(step)));
+  };
+
+  setDiffStep = (step: number) => {
+    this.diffStep = Math.max(0, Math.min(99, Math.round(step)));
   };
 
   advanceStep = (delta: number) => {
@@ -185,20 +192,16 @@ class VolumeStore {
     this.diffEnabled = enabled;
   };
 
+  toggleDiffMode = () => {
+    this.diffMode = !this.diffMode;
+  };
+
   setShowOriginal = (show: boolean) => {
     this.showOriginal = show;
   };
 
   setShowDifference = (show: boolean) => {
     this.showDifference = show;
-  };
-
-  setDiffOpacity = (opacity: number) => {
-    this.diffOpacity = Math.max(0, Math.min(1, opacity));
-  };
-
-  setDiffBaseOpacity = (opacity: number) => {
-    this.diffBaseOpacity = Math.max(0, Math.min(1, opacity));
   };
 
   setCategoryFilter = (filter: number) => {
@@ -295,6 +298,12 @@ class VolumeStore {
     this.lightIntensity = v;
   };
 
+  // ── ZYJ: 密度直方图筛选高亮 ──
+  setHighlightedRange = (range: { min: number; max: number } | null) => {
+    console.log('[volumeStore] setHighlightedRange:', range, 'previous:', this.highlightedRange);
+    this.highlightedRange = range;
+  };
+
   // ── YG: thumbnail analysis ──
   setTransferFunction = (points: TFControlPoint[]) => {
     this.transferFunction = [...points].sort((a, b) => a.position - b.position);
@@ -346,6 +355,26 @@ class VolumeStore {
 
   toggleThumbnailCompareOverlay = () => {
     this.thumbnailCompareOverlay = !this.thumbnailCompareOverlay;
+  };
+
+  toggleThumbnailStep = (step: number) => {
+    const clamped = Math.max(0, Math.min(99, Math.round(step)));
+    const idx = this.thumbnailSteps.indexOf(clamped);
+    if (idx >= 0) {
+      if (this.thumbnailSteps.length <= 1) return; // 至少保留一个
+      this.thumbnailSteps = this.thumbnailSteps.filter((s) => s !== clamped);
+    } else {
+      this.thumbnailSteps = [...this.thumbnailSteps, clamped].sort((a, b) => a - b);
+      // 同步加入差异分析系统
+      if (!this.comparisonSteps.includes(clamped)) {
+        this.comparisonSteps.push(clamped);
+        this.comparisonSteps.sort((a, b) => a - b);
+      }
+      // 设为差异对比目标
+      this.diffStep = clamped;
+      // Trigger thumbnail generation for the new step
+      this.thumbnailRefreshToken += 1;
+    }
   };
 
   refreshThumbnails = () => {

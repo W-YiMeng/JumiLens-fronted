@@ -65,8 +65,7 @@ export class VolumeScene {
         uGradWeight: { value: 0.6 },
         uDiffVolume: { value: null },
         uHasDiff: { value: false },
-        uDiffOpacity: { value: 0.6 },
-        uDiffBaseOpacity: { value: 0.08 },
+        uDiffMode: { value: false },
         uShowOriginal: { value: true },
         uShowDifference: { value: true },
         // ── YG lighting / preview uniforms ──
@@ -81,6 +80,9 @@ export class VolumeScene {
         uPreviewColorNeg: { value: new THREE.Vector3(0.2, 0.6, 1.0) },
         uPreviewDiffScale: { value: 3.0 },
         uPreviewOverlay: { value: 1 },
+        // ── ZYJ: 密度直方图筛选高亮 ──
+        uHighlightRange: { value: new THREE.Vector2(0, 0) },
+        uHighlightIntensity: { value: 0.0 },
       },
       depthTest: false,
       depthWrite: false,
@@ -227,14 +229,32 @@ export class VolumeScene {
     }
   }
 
-  setDiffParams(opacity: number, showOriginal: boolean, showDifference: boolean): void {
-    this.material.uniforms.uDiffOpacity.value = opacity;
+  setDiffMode(enabled: boolean): void {
+    this.material.uniforms.uDiffMode.value = enabled;
+  }
+
+  /** Toggle diff overlay visibility without disposing the texture */
+  setDiffVisible(visible: boolean): void {
+    this.material.uniforms.uHasDiff.value = visible && this.diffTexture !== null;
+  }
+
+  setDiffToggles(showOriginal: boolean, showDifference: boolean): void {
     this.material.uniforms.uShowOriginal.value = showOriginal;
     this.material.uniforms.uShowDifference.value = showDifference;
   }
 
-  setDiffBaseOpacity(opacity: number): void {
-    this.material.uniforms.uDiffBaseOpacity.value = opacity;
+  // ── ZYJ: 密度直方图筛选高亮 ──
+  updateHighlightRange(range: { min: number; max: number } | null): void {
+    console.log('[VolumeScene] updateHighlightRange:', range);
+    if (range) {
+      this.material.uniforms.uHighlightRange.value.set(range.min, range.max);
+      this.material.uniforms.uHighlightIntensity.value = 0.8;
+      console.log('[VolumeScene] uniforms set: uHighlightRange=(', range.min, ',', range.max, ') uHighlightIntensity=0.8');
+    } else {
+      this.material.uniforms.uHighlightRange.value.set(0, 0);
+      this.material.uniforms.uHighlightIntensity.value = 0.0;
+      console.log('[VolumeScene] uniforms cleared');
+    }
   }
 
   // ── YG: density scale ──
@@ -261,7 +281,7 @@ export class VolumeScene {
     range: [number, number],
     previewColor: [number, number, number],
     view: 'current' | 'top' | 'front' | 'side',
-    size: { width: number; height: number } = { width: 120, height: 60 }
+    size: { width: number; height: number } = { width: 120, height: 90 }
   ): string {
     const { width, height } = size;
     const renderTarget = new THREE.WebGLRenderTarget(width, height, {
@@ -330,26 +350,23 @@ export class VolumeScene {
     this.renderer.readRenderTargetPixels(renderTarget, 0, 0, width, height, pixels);
     this.renderer.setRenderTarget(prevTarget);
 
+    // ── Fast flip: bulk row copy instead of per-pixel loop ──
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       const imageData = ctx.createImageData(width, height);
+      const rowBytes = width * 4;
       for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const src = (x + (height - 1 - y) * width) * 4;
-          const dst = (x + y * width) * 4;
-          imageData.data[dst] = pixels[src];
-          imageData.data[dst + 1] = pixels[src + 1];
-          imageData.data[dst + 2] = pixels[src + 2];
-          imageData.data[dst + 3] = 255;
-        }
+        const srcStart = (height - 1 - y) * rowBytes;
+        imageData.data.set(pixels.subarray(srcStart, srcStart + rowBytes), y * rowBytes);
       }
       ctx.putImageData(imageData, 0, 0);
     }
 
-    const dataUrl = canvas.toDataURL('image/png');
+    // ── JPEG encoding: much faster + smaller than PNG ──
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
 
     renderTarget.dispose();
     tempTexture.dispose();
@@ -379,7 +396,7 @@ export class VolumeScene {
     range: [number, number],
     view: 'current' | 'top' | 'front' | 'side',
     overlayBase: boolean,
-    size: { width: number; height: number } = { width: 120, height: 60 }
+    size: { width: number; height: number } = { width: 120, height: 90 }
   ): string {
     const { width, height } = size;
     const renderTarget = new THREE.WebGLRenderTarget(width, height, {
@@ -453,26 +470,23 @@ export class VolumeScene {
     this.renderer.readRenderTargetPixels(renderTarget, 0, 0, width, height, pixels);
     this.renderer.setRenderTarget(prevTarget);
 
+    // ── Fast flip: bulk row copy instead of per-pixel loop ──
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       const imageData = ctx.createImageData(width, height);
+      const rowBytes = width * 4;
       for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const src = (x + (height - 1 - y) * width) * 4;
-          const dst = (x + y * width) * 4;
-          imageData.data[dst] = pixels[src];
-          imageData.data[dst + 1] = pixels[src + 1];
-          imageData.data[dst + 2] = pixels[src + 2];
-          imageData.data[dst + 3] = 255;
-        }
+        const srcStart = (height - 1 - y) * rowBytes;
+        imageData.data.set(pixels.subarray(srcStart, srcStart + rowBytes), y * rowBytes);
       }
       ctx.putImageData(imageData, 0, 0);
     }
 
-    const dataUrl = canvas.toDataURL('image/png');
+    // ── JPEG encoding: much faster + smaller than PNG ──
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
 
     renderTarget.dispose();
     textureA.dispose();

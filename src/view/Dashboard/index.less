@@ -39,13 +39,14 @@
     .main-content {
         flex: 1;
         display: flex;
+        flex-direction: row;
         overflow: hidden;
-        padding: 12px;
-        gap: 12px;
+        padding: 6px 12px 4px 12px;
+        gap: 8px;
 
-        .view1,
-        .view2 {
-            flex: 1;
+        // ════ 左侧面板 60% ════
+        .left-panel {
+            flex: 6;
             display: flex;
             flex-direction: column;
             background: var(--color-bg-panel);
@@ -53,27 +54,20 @@
             box-shadow: var(--shadow-panel);
             overflow: hidden;
             min-height: 0;
+            min-width: 0;
+        }
 
-            .panel-title {
-                padding: 10px 16px;
-                background: var(--color-bg-panel-title);
-                border-bottom: 1px solid var(--color-border);
-                font-size: 15px;
-                font-weight: 600;
-                color: var(--color-text-panel-title);
-                letter-spacing: 0.5px;
-                flex-shrink: 0;
-            }
-
-            .panel-body {
-                flex: 1;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: var(--color-text-body);
-                min-height: 0;
-                overflow: hidden;
-            }
+        // ════ 右侧面板 40% ════
+        .right-panel {
+            flex: 4;
+            display: flex;
+            flex-direction: column;
+            background: var(--color-bg-panel);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-panel);
+            overflow: hidden;
+            min-height: 0;
+            min-width: 0;
         }
     }
 }

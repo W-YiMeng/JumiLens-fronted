@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
-import { DensityHistogram, StatisticsPanel } from '@/components';
+import { DensityHistogram, EvolutionChart } from '@/components';
 import {
   loadNyxData,
   calculateLogHistogram,
@@ -15,9 +15,10 @@ const DATA_DIMENSIONS = { x: 128, y: 128, z: 128 };
 const View2: React.FC = observer(() => {
   const [histogramData, setHistogramData] = useState<HistogramData | null>(null);
   const [statistics, setStatistics] = useState<ReturnType<typeof calculateStatistics> | null>(null);
-  const [selectedRange, setSelectedRange] = useState<{ min: number; max: number } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 保存 raw 数据的 min/max，用于直方图上横轴（归一化 0-1）的计算
+  const [dataRange, setDataRange] = useState<{ min: number; max: number }>({ min: 0, max: 1 });
 
   const currentTimestep = volumeStore.currentStep;
 
@@ -30,7 +31,13 @@ const View2: React.FC = observer(() => {
       const url = `/assets/Nyx/${filename}`;
       const data = await loadNyxData(url, timestep, DATA_DIMENSIONS);
 
-      const histogram = calculateLogHistogram(data.data, 80, Math.log10(data.min), Math.log10(data.max));
+      // 保存 raw 数据范围供直方图上横轴使用
+      setDataRange({ min: data.min, max: data.max });
+
+      // Guard against non-positive min: use min of positive data as fallback
+      const safeLogMin = data.min > 0 ? Math.log10(data.min) : undefined;
+      const safeLogMax = data.max > 0 ? Math.log10(data.max) : undefined;
+      const histogram = calculateLogHistogram(data.data, 80, safeLogMin, safeLogMax);
       setHistogramData(histogram);
 
       const stats = calculateStatistics(data.data);
@@ -48,12 +55,18 @@ const View2: React.FC = observer(() => {
   }, [currentTimestep, loadData]);
 
   const handleRangeSelect = useCallback((range: { min: number; max: number } | null) => {
-    setSelectedRange(range);
+    console.log('[view2] handleRangeSelect, setting store:', range);
+    volumeStore.setHighlightedRange(range);
+    console.log('[view2] store.highlightedRange after set:', volumeStore.highlightedRange);
   }, []);
 
   const handleRetry = useCallback(() => {
     void loadData(currentTimestep);
   }, [loadData, currentTimestep]);
+
+  const handleJumpToStep = useCallback((step: number) => {
+    volumeStore.setTimeStep(step);
+  }, []);
 
   return (
     <div className="view2-root">
@@ -79,14 +92,17 @@ const View2: React.FC = observer(() => {
                 logBins={histogramData.logBins}
                 logBinEdges={histogramData.logBinEdges}
                 timestep={currentTimestep}
+                dataMin={dataRange.min}
+                dataMax={dataRange.max}
                 onRangeSelect={handleRangeSelect}
-                selectedRange={selectedRange}
+                selectedRange={volumeStore.highlightedRange}
+                statistics={statistics}
               />
             )}
           </div>
 
-          <div className="stats-section">
-            <StatisticsPanel stats={statistics} timestep={currentTimestep} />
+          <div className="charts-section">
+            <EvolutionChart currentStep={currentTimestep} onJumpToStep={handleJumpToStep} />
           </div>
         </>
       )}
