@@ -31,6 +31,9 @@ uniform vec3 uPreviewColorPos;
 uniform vec3 uPreviewColorNeg;
 uniform float uPreviewDiffScale;
 uniform int uPreviewOverlay;
+// ── 统一色板：差异图层红/蓝 ──
+uniform vec3 uDiffColorGrowth;
+uniform vec3 uDiffColorDecline;
 // ── ZYJ: 密度直方图筛选高亮 ──
 uniform vec2 uHighlightRange;
 uniform float uHighlightIntensity;
@@ -200,9 +203,7 @@ void main() {
                             tfColor.rgb = phongShade(tfColor.rgb, normal, lightDir, vDir);
                         }
                         // 红/蓝叠加
-                        vec3 diffColor = diffVal > 0.0
-                            ? vec3(0.95, 0.12, 0.08)
-                            : vec3(0.08, 0.18, 0.95);
+                        vec3 diffColor = diffVal > 0.0 ? uDiffColorGrowth : uDiffColorDecline;
                         float intensity = clamp(abs(diffVal) * 0.55, 0.0, 1.0);
                         tfColor.rgb = mix(tfColor.rgb, diffColor, intensity);
                         alphaCorrected = max(alphaCorrected, intensity * 0.5);
@@ -221,9 +222,7 @@ void main() {
 
                     } else {
                         // 仅变化着色: 纯红/蓝着色
-                        vec3 diffColor = diffVal > 0.0
-                            ? vec3(0.95, 0.12, 0.08)
-                            : vec3(0.08, 0.18, 0.95);
+                        vec3 diffColor = diffVal > 0.0 ? uDiffColorGrowth : uDiffColorDecline;
                         float intensity = clamp(abs(diffVal) * 0.55, 0.0, 1.0);
                         tfColor.rgb = diffColor;
                         alphaCorrected = intensity * 0.8;

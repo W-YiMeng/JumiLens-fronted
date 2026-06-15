@@ -1,5 +1,8 @@
 import React, { useMemo, useRef, useState, useCallback } from 'react';
 import './index.less';
+import { COLORS } from '@/constants/colors';
+
+const CH = COLORS.histogram;
 
 interface StatisticsOverlay {
   min: number;
@@ -90,11 +93,11 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
 
     // ── 清空 ──
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = CH.bg;
     ctx.fillRect(0, 0, width, height);
 
     // ── 水平网格线 ──
-    ctx.strokeStyle = '#f5f5f5';
+    ctx.strokeStyle = CH.grid;
     ctx.lineWidth = 1;
     const yGridLines = 5;
     for (let i = 0; i <= yGridLines; i++) {
@@ -106,7 +109,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     // ── 垂直网格线（与上下横轴标签对齐）──
-    ctx.strokeStyle = '#f5f5f5';
+    ctx.strokeStyle = CH.grid;
     ctx.setLineDash([3, 3]);
     const numXLabels = 7;
     for (let i = 0; i < numXLabels; i++) {
@@ -138,9 +141,9 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       }
 
       if (isSelected) {
-        ctx.fillStyle = '#ff6b6b';
+        ctx.fillStyle = CH.binSelected;
       } else {
-        ctx.fillStyle = '#1677ff';
+        ctx.fillStyle = CH.binUnselected;
       }
 
       const gap = Math.max(0.5, binWidth * 0.08);
@@ -151,9 +154,9 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     if (selectionStart !== null && selectionEnd !== null) {
       const sx = Math.min(selectionStart, selectionEnd);
       const ex = Math.max(selectionStart, selectionEnd);
-      ctx.fillStyle = 'rgba(255, 107, 107, 0.12)';
+      ctx.fillStyle = CH.dragFill;
       ctx.fillRect(sx, padding.top, ex - sx, chartHeight);
-      ctx.strokeStyle = '#ff6b6b';
+      ctx.strokeStyle = CH.dragStroke;
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 2]);
       ctx.strokeRect(sx, padding.top, ex - sx, chartHeight);
@@ -167,9 +170,9 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       if (minIndex !== -1 && maxIndex !== -1) {
         const sx = padding.left + minIndex * binWidth;
         const ex = padding.left + maxIndex * binWidth;
-        ctx.fillStyle = 'rgba(250, 173, 20, 0.12)';
+        ctx.fillStyle = CH.confirmedFill;
         ctx.fillRect(sx, padding.top, ex - sx, chartHeight);
-        ctx.strokeStyle = '#faad14';
+        ctx.strokeStyle = CH.confirmedStroke;
         ctx.lineWidth = 1.5;
         ctx.setLineDash([5, 3]);
         ctx.strokeRect(sx, padding.top, ex - sx, chartHeight);
@@ -178,7 +181,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     // ── 坐标轴线 ──
-    ctx.strokeStyle = '#d9d9d9';
+    ctx.strokeStyle = CH.axis;
     ctx.lineWidth = 1.5;
     // Y 轴
     ctx.beginPath();
@@ -197,7 +200,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     ctx.stroke();
 
     // ── Y 轴标签（频数）──
-    ctx.fillStyle = '#8c8c8c';
+    ctx.fillStyle = CH.labelY;
     ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
@@ -212,7 +215,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     // ── 下横轴标签（log₁₀ 原始密度）──
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = CH.labelX;
     ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -226,7 +229,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     // ── 上横轴标签（归一化 0-1 密度）──
-    ctx.fillStyle = '#1677ff';
+    ctx.fillStyle = CH.binUnselected;
     ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -247,21 +250,21 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     ctx.save();
     ctx.translate(14, padding.top + chartHeight / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = '#8c8c8c';
+    ctx.fillStyle = CH.labelY;
     ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('频数', 0, 0);
     ctx.restore();
 
     // 下横轴标题
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = CH.labelX;
     ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText('密度 (log₁₀)', padding.left + chartWidth / 2, padding.top + chartHeight + 26);
 
     // 上横轴标题
-    ctx.fillStyle = '#1677ff';
+    ctx.fillStyle = CH.binUnselected;
     ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -270,17 +273,17 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     // ── 图例 (右上) ──
     const legendX = padding.left + chartWidth - 120;
     const legendY = padding.top + 8;
-    ctx.fillStyle = '#ff6b6b';
+    ctx.fillStyle = CH.binSelected;
     ctx.fillRect(legendX, legendY, 10, 10);
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = CH.labelX;
     ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText('已选', legendX + 14, legendY + 5);
-    ctx.fillStyle = '#1677ff';
+    ctx.fillStyle = CH.binUnselected;
     ctx.fillRect(legendX + 45, legendY, 10, 10);
     ctx.fillText('全部', legendX + 59, legendY + 5);
-    ctx.fillStyle = '#8c8c8c';
+    ctx.fillStyle = CH.labelY;
     ctx.textBaseline = 'top';
     ctx.fillText(`N=${stats.total.toLocaleString()}`, legendX, legendY + 18);
     ctx.fillText(`峰值=${maxCount.toLocaleString()}`, legendX, legendY + 30);
@@ -301,18 +304,18 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
 
       // 标注线定义: { key, value, color, dash, label, labelOffset }
       const annotations: { value: number; color: string; dash: number[]; label: string; offsetY: number }[] = [
-        { value: statistics.p1,   color: '#ff4d4f', dash: [4, 3], label: 'P1',   offsetY: 0 },
-        { value: statistics.p99,  color: '#ff4d4f', dash: [4, 3], label: 'P99',  offsetY: 12 },
-        { value: statistics.mean, color: '#1d39c4', dash: [],     label: 'Mean', offsetY: 0 },
-        { value: statistics.median, color: '#52c41a', dash: [5, 3], label: 'Median', offsetY: 12 },
+        { value: statistics.p1,   color: CH.annotationP1P99, dash: [4, 3], label: 'P1',   offsetY: 0 },
+        { value: statistics.p99,  color: CH.annotationP1P99, dash: [4, 3], label: 'P99',  offsetY: 12 },
+        { value: statistics.mean, color: CH.annotationMean, dash: [],     label: 'Mean', offsetY: 0 },
+        { value: statistics.median, color: CH.annotationMedian, dash: [5, 3], label: 'Median', offsetY: 12 },
       ];
 
       // Optional min/max if within a reasonable range
       if (statistics.min > 0 && Math.log10(statistics.min) >= logMin) {
-        annotations.push({ value: statistics.min, color: '#999', dash: [2, 4], label: 'Min', offsetY: 0 });
+        annotations.push({ value: statistics.min, color: CH.annotationMinMax, dash: [2, 4], label: 'Min', offsetY: 0 });
       }
       if (statistics.max > 0 && Math.log10(statistics.max) <= logMax) {
-        annotations.push({ value: statistics.max, color: '#999', dash: [2, 4], label: 'Max', offsetY: 12 });
+        annotations.push({ value: statistics.max, color: CH.annotationMinMax, dash: [2, 4], label: 'Max', offsetY: 12 });
       }
 
       // Sort by value so labels don't overlap too badly
@@ -355,7 +358,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = CH.pillText;
         ctx.font = 'bold 8px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -464,10 +467,9 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
 
   return (
     <div className="density-histogram" ref={containerRef}>
+       <div className="evolution-chart-title">密度分布直方图</div>
       <div className="histogram-controls">
-        <span className="histogram-title">
-          密度分布直方图 <span className="step-badge">Step {timestep}</span>
-        </span>
+      
         <div className="controls-right">
           {selectedRange && (
             <button className="clear-btn" onClick={handleClearSelection}>

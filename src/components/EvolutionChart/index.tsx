@@ -1,5 +1,8 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import './index.less';
+import { COLORS } from '@/constants/colors';
+
+const CE = COLORS.evolution;
 
 // ── Types ──
 interface EvolutionData {
@@ -87,7 +90,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     ctx.scale(dpr, dpr);
 
     // Background
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = CE.bg;
     ctx.fillRect(0, 0, cssW, cssH);
 
     if (!data.timesteps.length) return;
@@ -117,7 +120,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
 
     // ── Horizontal grid + Y labels ──
     const yTicks = 5;
-    ctx.strokeStyle = '#f0f0f0';
+    ctx.strokeStyle = CE.grid;
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= yTicks; i++) {
       const ly = pad.top + (chartH / yTicks) * i;
@@ -128,7 +131,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
 
       const logVal = yLogMin + (yLogSpan / yTicks) * (yTicks - i);
       const rawVal = Math.pow(10, logVal);
-      ctx.fillStyle = '#999';
+      ctx.fillStyle = CE.labelY;
       ctx.font = '9px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
@@ -137,7 +140,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
 
     // ── Vertical grid ──
     const xTicks = 5;
-    ctx.strokeStyle = '#f0f0f0';
+    ctx.strokeStyle = CE.grid;
     ctx.setLineDash([3, 3]);
     for (let i = 0; i <= xTicks; i++) {
       const ti = Math.floor((n - 1) * i / xTicks);
@@ -150,7 +153,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     ctx.setLineDash([]);
 
     // ── Axes ──
-    ctx.strokeStyle = '#d9d9d9';
+    ctx.strokeStyle = CE.axis;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(pad.left, pad.top);
@@ -159,7 +162,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     ctx.stroke();
 
     // ── X labels ──
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = CE.labelX;
     ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -168,7 +171,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
       ctx.fillText(String(data.timesteps[ti]), getX(ti), chartYBottom + 6);
     }
     // X axis label
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = CE.labelX;
     ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.fillText('Timestep', pad.left + chartW / 2, chartYBottom + 22);
 
@@ -176,7 +179,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     ctx.save();
     ctx.translate(12, pad.top + chartH / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = '#8c8c8c';
+    ctx.fillStyle = CE.labelYTitle;
     ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('密度 (log₁₀)', 0, 0);
@@ -189,7 +192,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     ctx.clip();
 
     // ── LAYER 1: min–max fill (gray) ──
-    ctx.fillStyle = 'rgba(180, 180, 180, 0.25)';
+    ctx.fillStyle = CE.minMaxFill;
     ctx.beginPath();
     ctx.moveTo(getX(0), getY(data.max[0]));
     for (let i = 0; i < n; i++) ctx.lineTo(getX(i), getY(data.max[i]));
@@ -198,7 +201,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     ctx.fill();
 
     // ── LAYER 2: p1–p99 fill (light red) ──
-    ctx.fillStyle = 'rgba(255, 77, 79, 0.12)';
+    ctx.fillStyle = CE.p1p99Fill;
     ctx.beginPath();
     ctx.moveTo(getX(0), getY(data.p99[0]));
     for (let i = 0; i < n; i++) ctx.lineTo(getX(i), getY(data.p99[i]));
@@ -210,7 +213,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     {
       const upper = data.mean.map((m, i) => m + data.std[i]);
       const lower = data.mean.map((m, i) => Math.max(0, m - data.std[i]));
-      ctx.fillStyle = 'rgba(114, 46, 209, 0.12)';
+      ctx.fillStyle = CE.meanSigmaFill;
       ctx.beginPath();
       ctx.moveTo(getX(0), getY(upper[0]));
       for (let i = 0; i < n; i++) ctx.lineTo(getX(i), getY(upper[i]));
@@ -220,7 +223,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     }
 
     // ── LAYER 4: median dashed line (green) ──
-    ctx.strokeStyle = '#52c41a';
+    ctx.strokeStyle = CE.medianLine;
     ctx.lineWidth = 1.4;
     ctx.setLineDash([5, 3]);
     ctx.beginPath();
@@ -230,7 +233,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     ctx.setLineDash([]);
 
     // ── LAYER 5: mean solid line (dark blue) ──
-    ctx.strokeStyle = '#1d39c4';
+    ctx.strokeStyle = CE.meanLine;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(getX(0), getY(data.mean[0]));
@@ -241,7 +244,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     if (currentStep >= 0 && currentStep < n) {
       const sx = getX(currentStep);
       // Vertical dashed line
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.strokeStyle = CE.stepIndicator;
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
@@ -251,20 +254,20 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
       ctx.setLineDash([]);
 
       // Dot on mean line
-      ctx.fillStyle = '#1d39c4';
+      ctx.fillStyle = CE.meanLine;
       ctx.beginPath();
       ctx.arc(sx, getY(data.mean[currentStep]), 3.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = CE.dotStroke;
       ctx.lineWidth = 1;
       ctx.stroke();
 
       // Dot on median line
-      ctx.fillStyle = '#52c41a';
+      ctx.fillStyle = CE.medianLine;
       ctx.beginPath();
       ctx.arc(sx, getY(data.median[currentStep]), 3.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = CE.dotStroke;
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -273,7 +276,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     const hs = hoverStepRef.current;
     if (hs !== null && hs >= 0 && hs < n && hs !== currentStep) {
       const hx = getX(hs);
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.strokeStyle = CE.hoverIndicator;
       ctx.lineWidth = 0.7;
       ctx.setLineDash([2, 3]);
       ctx.beginPath();
@@ -290,11 +293,11 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     const lgY = pad.top + 4;
     const lgGap = 14;
     const items = [
-      { label: 'min–max', color: 'rgba(180,180,180,0.5)', type: 'fill' as const },
-      { label: 'p1–p99', color: 'rgba(255,77,79,0.2)', type: 'fill' as const },
-      { label: 'mean±σ', color: 'rgba(114,46,209,0.2)', type: 'fill' as const },
-      { label: 'median', color: '#52c41a', type: 'dash' as const },
-      { label: 'mean', color: '#1d39c4', type: 'line' as const },
+      { label: 'min–max', color: CE.legendMinMax, type: 'fill' as const },
+      { label: 'p1–p99', color: CE.legendP1P99, type: 'fill' as const },
+      { label: 'mean±σ', color: CE.legendMeanSigma, type: 'fill' as const },
+      { label: 'median', color: CE.medianLine, type: 'dash' as const },
+      { label: 'mean', color: CE.meanLine, type: 'line' as const },
     ];
     for (let i = 0; i < items.length; i++) {
       const iy = lgY + i * lgGap;
@@ -303,7 +306,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
       if (it.type === 'fill') {
         ctx.fillStyle = it.color;
         ctx.fillRect(lgX, iy, 12, 8);
-        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.strokeStyle = CE.legendBorder;
         ctx.lineWidth = 0.5;
         ctx.strokeRect(lgX, iy, 12, 8);
       } else if (it.type === 'dash') {
@@ -324,7 +327,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
         ctx.stroke();
       }
 
-      ctx.fillStyle = '#555';
+      ctx.fillStyle = CE.labelX;
       ctx.font = '9px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';

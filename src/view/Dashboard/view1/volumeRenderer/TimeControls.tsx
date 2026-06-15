@@ -11,10 +11,9 @@ interface TimeControlsProps {
 
 const TimeControls: React.FC<TimeControlsProps> = observer(
   ({ onSortByChange, onJumpToStep, onSetReference, onToggleThumbnailStep }) => {
-    const { currentStep, isPlaying, playSpeed, isLoading, referenceStep } = volumeStore;
+    const { referenceStep } = volumeStore;
     const [enlarged, setEnlarged] = useState<{ step: number; type: 'low' | 'high'; url: string } | null>(null);
 
-    // ── Render a thumbnail card ──
     const canRemove = volumeStore.thumbnailSteps.length > 1;
 
     const renderThumb = (step: number, type: 'low' | 'high') => {
@@ -56,36 +55,18 @@ const TimeControls: React.FC<TimeControlsProps> = observer(
     return (
       <>
         <div className="time-controls">
-          {/* ── Top bar: Playback + REF ── */}
-          <div className="time-bar">
-            <button className="play-btn" onClick={() => volumeStore.togglePlay()} title={isPlaying ? '暂停' : '播放'} disabled={isLoading}>
-              {isPlaying ? '⏸' : '▶'}
-            </button>
-            <input className="time-slider" type="range" min={0} max={99} value={currentStep} onChange={(e) => volumeStore.setTimeStep(Number(e.target.value))} />
-            <span className="step-label">Step {currentStep} / 99</span>
-            <select className="speed-select" value={playSpeed} onChange={(e) => volumeStore.setPlaySpeed(Number(e.target.value))}>
-              <option value={1}>1x</option><option value={2}>2x</option><option value={4}>4x</option><option value={8}>8x</option>
-            </select>
-            <div className="ref-badge-inline">
-              <span className="ref-label">参考步</span>
-              <span className="ref-value">{referenceStep}</span>
-              <span className="ref-hint">右键缩略图设定</span>
+          <div className="thumb-scroll-wrapper">
+            <div className="thumb-rows">
+              <div className="thumb-row-label">低密度</div>
+              <div className="thumb-cards">{volumeStore.thumbnailSteps.map(s => renderThumb(s, 'low'))}</div>
+            </div>
+            <div className="thumb-rows">
+              <div className="thumb-row-label">高密度</div>
+              <div className="thumb-cards">{volumeStore.thumbnailSteps.map(s => renderThumb(s, 'high'))}</div>
             </div>
           </div>
-
-          {/* ── Thumbnail rows ── */}
-          <div className="thumb-rows">
-            <div className="thumb-row-label">低密度范围</div>
-            <div className="thumb-cards">{volumeStore.thumbnailSteps.map(s => renderThumb(s, 'low'))}</div>
-          </div>
-          <div className="thumb-rows">
-            <div className="thumb-row-label">高密度范围</div>
-            <div className="thumb-cards">{volumeStore.thumbnailSteps.map(s => renderThumb(s, 'high'))}</div>
-          </div>
-
         </div>
 
-        {/* ── Enlarged thumbnail modal ── */}
         {enlarged && (
           <div className="thumb-modal-overlay" onClick={() => setEnlarged(null)}>
             <div className="thumb-modal" onClick={(e) => e.stopPropagation()}>

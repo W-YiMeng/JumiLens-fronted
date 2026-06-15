@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
+    "@types/d3": "^7.4.3",
     "axios": "^1.16.1",
     "axios-retry": "^4.5.0",
     "classnames": "^2.5.1",
+    "d3": "^7.9.0",
     "mobx": "^6.15.3",
     "mobx-react-lite": "^4.1.1",
     "react": "^19.2.6",

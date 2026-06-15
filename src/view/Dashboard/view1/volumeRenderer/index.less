@@ -13,7 +13,7 @@
     background: rgba(0, 0, 0, 0.7);
     color: #fff; padding: 8px 16px;
     border-radius: 4px;
-    font-size: clamp(11px, 1.1vw, 16px);
+    font-size: clamp(10px, 0.9vw, 13px);
     z-index: 100; pointer-events: none;
   }
 }
@@ -31,24 +31,25 @@
   z-index: 60;
   width: @btn-size; height: @btn-size;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.65);
+  border: 1.5px solid rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(6px);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(0, 0, 0, 0.7);
   font-size: clamp(14px, 1.4vw, 22px);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 
   &:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.35);
   }
 
   &.open {
     right: calc(@panel-w + clamp(8px, 1vw, 14px));
-    background: rgba(220, 50, 50, 0.25);
-    border-color: rgba(255, 100, 100, 0.5);
+    background: rgba(255, 240, 240, 0.9);
+    border-color: rgba(220, 50, 50, 0.4);
   }
 
   .panel-toggle-icon { line-height: 1; }
@@ -66,9 +67,10 @@
   overflow-y: auto;
   overflow-x: hidden;
 
-  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -81,45 +83,47 @@
   width: @panel-w;
   max-height: calc(100vh - clamp(40px, 4vw, 60px));
   z-index: 55;
-  background: rgba(0, 0, 0, 0.78);
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(10px);
   border-radius: clamp(8px, 0.8vw, 12px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   transition: right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
   display: flex; flex-direction: column;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
 
   &.visible {
     right: clamp(8px, 1vw, 14px);
   }
 
-  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
 }
 
 .tf-panel-tabs {
   display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
 }
 
 .tf-panel-tab {
   flex: 1;
   background: none; border: none;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(0, 0, 0, 0.45);
   padding: clamp(6px, 0.7vw, 10px) 0;
-  font-size: clamp(11px, 1vw, 15px);
+  font-size: clamp(10px, 0.9vw, 13px);
   cursor: pointer;
   transition: all 0.15s;
   border-bottom: 2px solid transparent;
   letter-spacing: 0.3px;
 
-  &:hover { color: rgba(255, 255, 255, 0.75); background: rgba(255,255,255,0.04); }
+  &:hover { color: rgba(0, 0, 0, 0.7); background: rgba(0,0,0,0.03); }
   &.active {
-    color: #fff;
-    border-bottom-color: #4fc3f7;
-    background: rgba(79, 195, 247, 0.08);
+    color: #0390c0;
+    border-bottom-color: #0390c0;
+    background: rgba(3, 144, 192, 0.06);
   }
 }
 
@@ -134,8 +138,8 @@
 }
 
 .tf-section-title {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: clamp(9px, 0.85vw, 12px);
+  color: rgba(0, 0, 0, 0.5);
+  font-size: clamp(9px, 0.8vw, 12px);
   text-transform: uppercase; letter-spacing: 0.5px;
   margin-bottom: 2px;
 }
@@ -149,8 +153,8 @@
 }
 
 .tf-hint {
-  color: rgba(255, 255, 255, 0.35);
-  font-size: clamp(8px, 0.7vw, 11px);
+  color: rgba(0, 0, 0, 0.4);
+  font-size: clamp(9px, 0.8vw, 12px);
   text-align: center;
 }
 
@@ -158,13 +162,13 @@
 .tf-point-editor {
   display: flex; flex-direction: column; gap: 3px;
   padding: 4px 0;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(0,0,0,0.08);
 
   .tf-point-row {
     display: flex; align-items: center; gap: 4px;
 
     label {
-      color: rgba(255,255,255,0.5);
+      color: rgba(0,0,0,0.55);
       font-size: clamp(9px, 0.8vw, 12px);
       width: clamp(24px, 3vw, 36px);
     }
@@ -172,27 +176,27 @@
     input[type="range"] {
       -webkit-appearance: none; appearance: none;
       flex: 1; height: 3px; border-radius: 2px;
-      background: rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.12);
       outline: none; cursor: pointer;
       &::-webkit-slider-thumb {
         -webkit-appearance: none; appearance: none;
         width: 10px; height: 10px; border-radius: 50%;
-        background: #ffdd00;
-	  }
+        background: #e6a800;
+      }
     }
 
     input[type="color"] {
       -webkit-appearance: none; appearance: none;
       width: clamp(22px, 2.5vw, 30px);
       height: clamp(14px, 1.5vw, 20px);
-      border: 1px solid rgba(255,255,255,0.25);
+      border: 1px solid rgba(0,0,0,0.2);
       border-radius: 2px; cursor: pointer;
       padding: 0; background: none;
       &::-webkit-color-swatch-wrapper { padding: 0; }
     }
 
     span {
-      color: rgba(255,255,255,0.65);
+      color: rgba(0,0,0,0.65);
       font-size: clamp(9px, 0.8vw, 12px);
       min-width: 24px; text-align: right;
       font-variant-numeric: tabular-nums;
@@ -204,7 +208,7 @@
 .tf-controls {
   display: flex; gap: 6px;
   label {
-    color: rgba(255,255,255,0.6);
+    color: rgba(0,0,0,0.6);
     font-size: clamp(9px, 0.8vw, 12px);
     display: flex; align-items: center; gap: 3px;
     flex: 1;
@@ -212,34 +216,34 @@
   input[type="range"] {
     -webkit-appearance: none; appearance: none;
     flex: 1; height: 3px; border-radius: 2px;
-    background: rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.12);
     outline: none; cursor: pointer;
     &::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
-      width: 10px; height: 10px; border-radius: 50%; background: #fff;
+      width: 10px; height: 10px; border-radius: 50%; background: #555;
     }
   }
 }
 
 .tf-grad-controls {
   padding-top: 4px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(0,0,0,0.08);
   label {
-    color: rgba(255,255,255,0.6);
+    color: rgba(0,0,0,0.6);
     font-size: clamp(9px, 0.8vw, 12px);
     display: flex; align-items: center; gap: 4px; margin-bottom: 2px;
   }
   input[type="range"] {
     -webkit-appearance: none; appearance: none;
     width: clamp(55px, 7vw, 90px); height: 3px; border-radius: 2px;
-    background: rgba(255,255,255,0.2); outline: none; cursor: pointer;
+    background: rgba(0,0,0,0.12); outline: none; cursor: pointer;
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 10px; height: 10px; border-radius: 50%; background: #4fc3f7;
+      width: 10px; height: 10px; border-radius: 50%; background: #0390c0;
     }
   }
   span {
-    color: rgba(255,255,255,0.6);
+    color: rgba(0,0,0,0.6);
     font-size: clamp(9px, 0.8vw, 12px);
     min-width: 24px; text-align: right;
     font-variant-numeric: tabular-nums;
@@ -253,91 +257,91 @@
   &.sub {
     margin-left: clamp(10px, 1vw, 16px);
     padding-left: clamp(6px, 0.6vw, 10px);
-    border-left: 1px solid rgba(255,255,255,0.12);
+    border-left: 1px solid rgba(0,0,0,0.12);
   }
   // 主开关高亮
   .tf-diff-toggle.master {
     &.active {
-      border-color: rgba(255, 215, 0, 0.5);
-      background: rgba(255, 215, 0, 0.12);
-      color: #ffd700;
+      border-color: rgba(200, 160, 0, 0.5);
+      background: rgba(200, 160, 0, 0.12);
+      color: #b8860b;
     }
   }
   .tf-diff-toggle {
     display: flex; align-items: center; gap: 4px;
     padding: clamp(3px, 0.3vw, 6px) clamp(6px, 0.6vw, 10px);
     border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(0,0,0,0.2);
     cursor: pointer;
     font-size: clamp(9px, 0.8vw, 12px);
-    color: rgba(255,255,255,0.45);
+    color: rgba(0,0,0,0.5);
     transition: all 0.15s; user-select: none;
     &.active {
-      color: rgba(255,255,255,0.9);
-      border-color: rgba(255,255,255,0.5);
-      background: rgba(255,255,255,0.1);
+      color: rgba(0,0,0,0.85);
+      border-color: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.06);
     }
   }
   .tf-diff-toggle-swatch { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-  .tf-diff-toggle-orig { background: rgba(255,255,255,0.6); }
-  .tf-diff-toggle-diff { background: linear-gradient(135deg, #ff3030 50%, #3060ff 50%); }
+  .tf-diff-toggle-orig { background: rgba(0,0,0,0.5); }
+  .tf-diff-toggle-diff { background: linear-gradient(135deg, var(--color-diff-swatch-growth) 50%, var(--color-diff-swatch-decline) 50%); }
 }
 
 // Shared label+range+span pattern inside diff / tab-content
 .tf-diff-controls,
 .tf-tab-content {
   > label {
-    color: rgba(255,255,255,0.6);
+    color: rgba(0,0,0,0.6);
     font-size: clamp(9px, 0.8vw, 12px);
     display: flex; align-items: center; gap: 4px; margin-bottom: 2px;
   }
   > input[type="range"] {
     -webkit-appearance: none; appearance: none;
     width: clamp(55px, 7vw, 90px); height: 3px; border-radius: 2px;
-    background: rgba(255,255,255,0.2); outline: none; cursor: pointer;
+    background: rgba(0,0,0,0.12); outline: none; cursor: pointer;
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b;
+      width: 10px; height: 10px; border-radius: 50%; background: #e05555;
     }
   }
   > span {
-    color: rgba(255,255,255,0.6);
+    color: rgba(0,0,0,0.6);
     font-size: clamp(9px, 0.8vw, 12px);
     min-width: 24px; text-align: right;
     font-variant-numeric: tabular-nums;
   }
 
   .tf-cat-select {
-    background: rgba(255,255,255,0.08);
-    color: #fff; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.04);
+    color: #333; border: 1px solid rgba(0,0,0,0.15);
     border-radius: 4px; padding: 2px 4px;
     font-size: clamp(9px, 0.8vw, 12px);
     cursor: pointer; outline: none; max-width: 180px;
-    option { background: #222; color: #fff; }
+    option { background: #f5f5f5; color: #333; }
   }
 }
 
 .tf-percentile-controls {
   padding-top: 4px; margin-top: 2px;
-  border-top: 1px solid rgba(255,255,255,0.07);
+  border-top: 1px solid rgba(0,0,0,0.07);
   label {
-    color: rgba(255,255,255,0.55);
+    color: rgba(0,0,0,0.55);
     font-size: clamp(9px, 0.8vw, 12px);
     display: flex; align-items: center; gap: 4px; margin-bottom: 1px;
   }
   input[type="range"] {
     -webkit-appearance: none; appearance: none;
     width: clamp(50px, 6.5vw, 80px); height: 3px; border-radius: 2px;
-    background: rgba(255,255,255,0.18); outline: none; cursor: pointer;
+    background: rgba(0,0,0,0.1); outline: none; cursor: pointer;
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 10px; height: 10px; border-radius: 50%; background: #4fc3f7;
+      width: 10px; height: 10px; border-radius: 50%; background: #0390c0;
     }
   }
   .tf-percentile-value {
     display: block;
-    color: rgba(255,255,255,0.25);
-    font-size: clamp(7px, 0.6vw, 10px);
+    color: rgba(0,0,0,0.35);
+    font-size: clamp(9px, 0.8vw, 12px);
     margin-bottom: 2px; font-variant-numeric: tabular-nums;
   }
 }
@@ -347,21 +351,21 @@
   display: flex; align-items: center;
   gap: clamp(4px, 0.5vw, 8px); margin-bottom: 3px;
   label {
-    color: rgba(255,255,255,0.6);
+    color: rgba(0,0,0,0.6);
     font-size: clamp(9px, 0.8vw, 12px);
     width: clamp(32px, 3.5vw, 44px);
   }
   input[type="range"] {
     -webkit-appearance: none; appearance: none;
     flex: 1; height: 3px; border-radius: 2px;
-    background: rgba(255,255,255,0.22); outline: none; cursor: pointer;
+    background: rgba(0,0,0,0.12); outline: none; cursor: pointer;
     &::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
-      width: 10px; height: 10px; border-radius: 50%; background: #fff;
+      width: 10px; height: 10px; border-radius: 50%; background: #555;
     }
   }
   span {
-    color: rgba(255,255,255,0.7);
+    color: rgba(0,0,0,0.65);
     font-size: clamp(9px, 0.8vw, 12px);
     min-width: 30px; text-align: right;
     font-variant-numeric: tabular-nums;
@@ -369,194 +373,149 @@
 }
 
 // ═══════════════════════════════════════════════════
-// Time Controls — inline layout (hosted by View1 flex container)
+// Time Controls — thumbnail area only (play/speed moved to chart row)
 // ═══════════════════════════════════════════════════
 .time-controls {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  z-index: 50;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  border-radius: 0;
-  padding: clamp(4px, 0.5vw, 10px) clamp(8px, 0.8vw, 16px);
+  background: #ffffff;
+  padding: clamp(3px, 0.4vw, 6px) clamp(6px, 0.6vw, 12px);
   display: flex; flex-direction: column;
-  gap: clamp(3px, 0.35vw, 6px);
-  border: none;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
-// ── Top bar ──
-.time-bar {
-  display: flex; align-items: center;
-  gap: clamp(6px, 0.8vw, 14px);
-  padding-bottom: clamp(6px, 0.5vw, 10px);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+// ── Single shared horizontal scroll wrapper for all thumbnail rows ──
+.thumb-scroll-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6%;
+  overflow-x: auto;
+  overflow-y: hidden;
 
-  .play-btn {
-    cursor: pointer; background: none;
-    border: 1px solid rgba(255,255,255,0.25); color: #fff;
-    width: clamp(26px, 2.5vw, 36px);
-    height: clamp(26px, 2.5vw, 36px);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: clamp(11px, 1vw, 15px);
-    transition: background 0.15s; flex-shrink: 0;
-    &:hover { background: rgba(255,255,255,0.12); }
-  }
-
-  .time-slider {
-    -webkit-appearance: none; appearance: none;
-    flex: 1; min-width: 120px;
-    height: clamp(3px, 0.35vw, 5px); border-radius: 2px;
-    background: rgba(255,255,255,0.2); outline: none; cursor: pointer;
-    &::-webkit-slider-thumb {
-      -webkit-appearance: none; appearance: none;
-      width: clamp(12px, 1.1vw, 18px);
-      height: clamp(12px, 1.1vw, 18px);
-      border-radius: 50%; background: #fff;
-    }
-  }
-
-  .step-label {
-    color: rgba(255,255,255,0.8);
-    font-size: clamp(11px, 1vw, 15px);
-    min-width: clamp(70px, 8vw, 100px); text-align: center;
-    font-variant-numeric: tabular-nums; flex-shrink: 0;
-  }
-
-  .speed-select {
-    background: rgba(255,255,255,0.08); color: #fff;
-    border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
-    padding: clamp(2px, 0.25vw, 4px) clamp(4px, 0.4vw, 8px);
-    font-size: clamp(10px, 0.9vw, 13px); cursor: pointer; outline: none;
-    option { background: #222; color: #fff; }
-  }
-
-  .ref-badge-inline {
-    display: flex; align-items: center;
-    gap: clamp(4px, 0.4vw, 8px); flex-shrink: 0;
-    .ref-label { color: rgba(255,255,255,0.45); font-size: clamp(9px, 0.8vw, 12px); }
-    .ref-value {
-      background: rgba(255,215,0,0.15);
-      border: 1px solid rgba(255,215,0,0.35);
-      color: #ffd700; border-radius: 4px;
-      padding: clamp(1px, 0.15vw, 3px) clamp(5px, 0.5vw, 10px);
-      font-size: clamp(11px, 1vw, 15px); font-weight: 600;
-    }
-    .ref-hint { color: rgba(255,255,255,0.25); font-size: clamp(8px, 0.7vw, 11px); }
-  }
+  &::-webkit-scrollbar { height: 5px; }
+  &::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); border-radius: 3px; }
+  &::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 3px; }
+  &::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
 }
 
-// ── Thumbnail rows — single row, horizontal scroll ──
+// ── Thumbnail rows — each 47% height, no overflow ──
 .thumb-rows {
-  display: flex; align-items: flex-start;
+  display: flex; align-items: stretch;
+  flex: 0 0 47%;
+  min-height: 0;
+  overflow: hidden;
   gap: clamp(3px, 0.35vw, 6px);
 }
 
 .thumb-row-label {
-  color: rgba(255,255,255,0.5);
-  font-size: clamp(9px, 0.85vw, 12px);
+  color: rgba(0,0,0,0.5);
+  font-size: clamp(9px, 0.8vw, 12px);
   text-transform: uppercase; letter-spacing: 0.4px;
-  min-width: clamp(45px, 5vw, 65px);
-  text-align: right; padding-top: 4px; flex-shrink: 0;
+  min-width: clamp(38px, 4vw, 52px);
+  text-align: right; padding-top: 6px; flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .thumb-cards {
-  display: flex; gap: clamp(5px, 0.5vw, 10px);
-  flex-wrap: nowrap;            // ← NEVER wrap
-  overflow-x: auto;             // ← horizontal scroll when needed
+  display: flex; gap: clamp(4px, 0.2vw, 8px);
+  flex-wrap: nowrap;
   flex: 1;
-  padding-bottom: 4px;
-
-  &::-webkit-scrollbar { height: 3px; }
-  &::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 2px; }
-  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  min-width: 0;
 }
 
 .thumb-card {
-  width: clamp(140px, 16vw, 280px);
-  flex-shrink: 0;               // ← prevent shrinking
+  width: clamp(120px, 14vw, 240px);
+  flex-shrink: 0;
+  height: 100%;
   display: flex; flex-direction: column; align-items: center;
-  gap: 2px; padding: 2px 3px;
-  border-radius: 6px;
-  border: 1px solid transparent;
+  gap: 1px; padding: 2px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: #fafafa;
   cursor: pointer;
   transition: all 0.15s;
   position: relative;
+  box-sizing: border-box;
 
   &:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(255,255,255,0.2);
-    transform: translateY(-1px);
+    background: #f0f0f0;
+    border-color: rgba(0,0,0,0.18);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
 
   &.reference {
-    border-color: rgba(255,215,0,0.45);
-    background: rgba(255,215,0,0.08);
+    border-color: rgba(200,160,0,0.5);
+    background: rgba(200,160,0,0.06);
+    box-shadow: 0 0 0 1px rgba(200,160,0,0.15);
 
-    .thumb-card-label { color: #ffd700; font-weight: 600; }
+    .thumb-card-label { color: #b8860b; font-weight: 600; }
   }
 
   .thumb-card-img {
     width: 100%;
-    aspect-ratio: 4 / 3;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.06);
+    flex: 1;
+    min-height: 0;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.04);
     background-size: cover; background-position: center;
     position: relative; overflow: hidden;
     display: flex; align-items: center; justify-content: center;
   }
 
   .thumb-card-loading {
-    color: rgba(255,255,255,0.2);
+    color: rgba(0,0,0,0.25);
     font-size: clamp(9px, 0.8vw, 12px);
   }
 
   .thumb-card-star {
-    position: absolute; top: 3px; left: 5px;
-    color: #ffd700;
-    font-size: clamp(12px, 1.2vw, 18px);
-    text-shadow: 0 0 6px rgba(255,215,0,0.5); z-index: 2;
+    position: absolute; top: 2px; left: 3px;
+    color: #b8860b;
+    font-size: clamp(10px, 1vw, 14px);
+    text-shadow: 0 0 4px rgba(200,160,0,0.25); z-index: 2;
+    line-height: 1;
   }
 
   // Expand button — appears on hover
   .thumb-card-expand {
     position: absolute; top: 2px; right: 2px;
-    width: clamp(20px, 2vw, 28px);
-    height: clamp(20px, 2vw, 28px);
-    border-radius: 4px;
-    background: rgba(0,0,0,0.55);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: rgba(255,255,255,0.7);
-    font-size: clamp(11px, 1vw, 15px);
+    width: clamp(18px, 1.8vw, 24px);
+    height: clamp(18px, 1.8vw, 24px);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(0,0,0,0.12);
+    color: rgba(0,0,0,0.5);
+    font-size: clamp(9px, 0.8vw, 12px);
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity 0.15s; z-index: 3;
-    &:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    &:hover { background: #fff; color: #333; border-color: rgba(0,0,0,0.25); }
   }
   &:hover .thumb-card-expand,
-	&:hover .thumb-card-remove { opacity: 1; }
+  &:hover .thumb-card-remove { opacity: 1; }
 
-	  // Remove button — appears on hover, positioned at top-left
-	  .thumb-card-remove {
-	    position: absolute; top: 2px; left: 2px;
-	    width: clamp(18px, 1.8vw, 24px);
-	    height: clamp(18px, 1.8vw, 24px);
-	    border-radius: 4px;
-	    background: rgba(180, 20, 20, 0.55);
-	    border: 1px solid rgba(255, 80, 80, 0.3);
-	    color: rgba(255, 255, 255, 0.8);
-	    font-size: clamp(9px, 0.9vw, 12px);
-	    cursor: pointer; display: flex; align-items: center; justify-content: center;
-	    opacity: 0; transition: opacity 0.15s; z-index: 3;
-	    line-height: 1;
-	    &:hover { background: rgba(220, 40, 40, 0.7); color: #fff; border-color: rgba(255, 100, 100, 0.6); }
-	  }
+  // Remove button — appears on hover, positioned at top-left
+  .thumb-card-remove {
+    position: absolute; top: 2px; left: 2px;
+    width: clamp(16px, 1.6vw, 22px);
+    height: clamp(16px, 1.6vw, 22px);
+    border-radius: 3px;
+    background: rgba(200, 30, 30, 0.6);
+    border: 1px solid rgba(255, 80, 80, 0.25);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: clamp(8px, 0.7vw, 11px);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s; z-index: 3;
+    line-height: 1;
+    &:hover { background: rgba(220, 40, 40, 0.8); color: #fff; border-color: rgba(255, 100, 100, 0.5); }
+  }
 
   .thumb-card-label {
-    color: rgba(255,255,255,0.65);
-    font-size: clamp(9px, 0.85vw, 12px);
+    color: rgba(0,0,0,0.55);
+    font-size: clamp(9px, 0.8vw, 12px);
     font-variant-numeric: tabular-nums;
+    line-height: 1.2;
   }
 }
 
@@ -564,7 +523,7 @@
 .thumb-ctls {
   display: flex; gap: clamp(8px, 1vw, 16px); flex-wrap: wrap;
   padding-top: clamp(4px, 0.4vw, 8px);
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(0,0,0,0.08);
 
   // Standalone mode: vertical layout in top-right tab panel
   &.standalone {
@@ -585,45 +544,46 @@
   gap: clamp(3px, 0.3vw, 6px);
 
   label {
-    color: rgba(255,255,255,0.5);
-    font-size: clamp(9px, 0.85vw, 12px);
+    color: rgba(0,0,0,0.55);
+    font-size: clamp(9px, 0.8vw, 12px);
     min-width: clamp(28px, 3vw, 40px);
   }
 
   select {
-    background: rgba(255,255,255,0.07); color: #fff;
-    border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
+    background: rgba(0,0,0,0.04); color: #333;
+    border: 1px solid rgba(0,0,0,0.15); border-radius: 4px;
     padding: clamp(2px, 0.2vw, 4px) clamp(4px, 0.4vw, 6px);
     font-size: clamp(9px, 0.8vw, 12px); cursor: pointer; outline: none;
-    option { background: #222; color: #fff; }
+    option { background: #f5f5f5; color: #333; }
   }
 
   .thumb-btn {
-    background: rgba(255,255,255,0.1); color: #fff;
-    border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
+    background: rgba(0,0,0,0.06); color: #333;
+    border: 1px solid rgba(0,0,0,0.15); border-radius: 4px;
     padding: clamp(2px, 0.2vw, 4px) clamp(6px, 0.5vw, 10px);
     font-size: clamp(9px, 0.8vw, 12px);
     cursor: pointer; transition: all 0.12s; white-space: nowrap;
-    &:hover { background: rgba(255,255,255,0.18); }
+    &:hover { background: rgba(0,0,0,0.1); }
     &.active {
-      background: rgba(79,195,247,0.25);
-      border-color: rgba(79,195,247,0.5);
+      background: rgba(3,144,192,0.15);
+      border-color: rgba(3,144,192,0.4);
+      color: #0390c0;
     }
   }
 
   input[type="range"] {
     -webkit-appearance: none; appearance: none;
     width: clamp(45px, 5vw, 70px); height: 3px; border-radius: 2px;
-    background: rgba(255,255,255,0.18); outline: none; cursor: pointer;
+    background: rgba(0,0,0,0.12); outline: none; cursor: pointer;
     &::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
-      width: 10px; height: 10px; border-radius: 50%; background: #fff;
+      width: 10px; height: 10px; border-radius: 50%; background: #555;
     }
   }
 
   .ctl-range-val {
-    color: rgba(255,255,255,0.55);
-    font-size: clamp(8px, 0.7vw, 10px);
+    color: rgba(0,0,0,0.55);
+    font-size: clamp(9px, 0.8vw, 12px);
     min-width: clamp(44px, 5vw, 60px);
     font-variant-numeric: tabular-nums;
   }
@@ -652,7 +612,7 @@
   .thumb-modal-header {
     display: flex; align-items: center; justify-content: space-between;
     color: rgba(255,255,255,0.85);
-    font-size: clamp(12px, 1.2vw, 16px);
+    font-size: clamp(11px, 1vw, 14px);
   }
 
   .thumb-modal-close {
@@ -684,7 +644,7 @@
       background: rgba(255,255,255,0.1); color: #fff;
       border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
       padding: clamp(5px, 0.5vw, 8px) clamp(14px, 1.4vw, 22px);
-      font-size: clamp(11px, 1vw, 14px);
+      font-size: clamp(10px, 0.9vw, 13px);
       cursor: pointer; transition: all 0.15s;
       &:hover { background: rgba(255,255,255,0.2); }
     }

@@ -13,7 +13,6 @@ type TopRightTab = 'tf' | 'controls';
 const View1 = observer(() => {
     const [topRightTab, setTopRightTab] = useState<TopRightTab>('tf');
 
-    // ── Handlers (moved from VolumeRenderer) ──
     const handleSortByChange = useCallback(() => {
         const entries: { step: number; total: number }[] = [];
         for (const s of volumeStore.comparisonSteps) {
@@ -29,8 +28,8 @@ const View1 = observer(() => {
 
     const handleJumpToStep = useCallback((step: number) => {
         volumeStore.setTimeStep(step);
-        volumeStore.setDiffStep(step); // 差异图层仅跟随缩略图选择
-        volumeStore.addComparisonStep(step); // 同步加入差异分析系统
+        volumeStore.setDiffStep(step);
+        volumeStore.addComparisonStep(step);
     }, []);
 
     const handleSetReference = useCallback((step: number) => {
@@ -43,16 +42,14 @@ const View1 = observer(() => {
 
     return (
         <div className="view1-root">
-            {/* ════ 左上 60%: flex row (7:3) — 3D立方体 + 传递函数 ════ */}
+            {/* ════ 左上: 3D立方体 + 传递函数 ════ */}
             <div className="view1-top">
-                {/* 左上左 70%: 3D立方体 */}
                 <div className="view1-cube">
                     <div className="block-label">3D 立方体</div>
                     <div className="block-body cube-body">
                         <VolumeRenderer />
                     </div>
                 </div>
-                {/* 左上右 30%: 多Tab面板 */}
                 <div className="view1-tf">
                     <div className="block-label tf-tabs">
                         <button
@@ -77,18 +74,43 @@ const View1 = observer(() => {
                     </div>
                 </div>
             </div>
-            {/* ════ 左下 40%: 时间轴模块 ════ */}
+
+            {/* ════ 左下: 播放图表 + 缩略图 ════ */}
             <div className="view1-bottom">
-                <div className="block-label">时间轴</div>
-                <div className="tails-chart-wrapper">
-                    <TailsLineChart
-                        currentStep={volumeStore.currentStep}
-                        thumbnailSteps={volumeStore.thumbnailSteps}
-                        onJumpToStep={handleJumpToStep}
-                        onToggleThumbnailStep={handleToggleThumbnailStep}
-                    />
+               
+
+                {/* Row: [▶3%] [图表94%] [倍速3%] */}
+                <div className="chart-row">
+                    <button
+                        className="play-btn-inline"
+                        onClick={() => volumeStore.togglePlay()}
+                        title={volumeStore.isPlaying ? '暂停' : '播放'}
+                        disabled={volumeStore.isLoading}
+                    >
+                        {volumeStore.isPlaying ? '⏸' : '▶'}
+                    </button>
+                    <div className="tails-chart-wrapper">
+                        <TailsLineChart
+                            currentStep={volumeStore.currentStep}
+                            thumbnailSteps={volumeStore.thumbnailSteps}
+                            onJumpToStep={handleJumpToStep}
+                            onToggleThumbnailStep={handleToggleThumbnailStep}
+                        />
+                    </div>
+                    <select
+                        className="speed-select-inline"
+                        value={volumeStore.playSpeed}
+                        onChange={(e) => volumeStore.setPlaySpeed(Number(e.target.value))}
+                    >
+                        <option value={1}>1x</option>
+                        <option value={2}>2x</option>
+                        <option value={4}>4x</option>
+                        <option value={8}>8x</option>
+                    </select>
                 </div>
-                <div className="block-body timeline-body">
+
+                {/* Thumbnail rows */}
+                <div className="timeline-body">
                     <TimeControls
                         onSortByChange={handleSortByChange}
                         onJumpToStep={handleJumpToStep}

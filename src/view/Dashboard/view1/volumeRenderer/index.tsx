@@ -14,6 +14,7 @@ import {
   imageDataToDataURL,
   type PercentileThresholds,
 } from './diffClassifier';
+import { COLORS, hexToRgb } from '@/constants/colors';
 import './index.less';
 
 const THUMB_W = 120;
@@ -460,7 +461,7 @@ const VolumeRenderer: React.FC = observer(() => {
               : vs.renderThumbnail(
                   data,
                   volumeStore.thumbnailLowRange,
-                  [0.3, 0.8, 1.0],
+                  hexToRgb(COLORS.density2D.lowPreview),
                   volumeStore.thumbnailView,
                   LOW_SIZE
                 );
@@ -480,7 +481,7 @@ const VolumeRenderer: React.FC = observer(() => {
               : vs.renderThumbnail(
                   data,
                   volumeStore.thumbnailHighRange,
-                  [1.0, 0.55, 0.2],
+                  hexToRgb(COLORS.density2D.highPreview),
                   volumeStore.thumbnailView,
                   HIGH_SIZE
                 );

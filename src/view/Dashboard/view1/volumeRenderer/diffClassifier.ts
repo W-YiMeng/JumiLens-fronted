@@ -1,3 +1,5 @@
+import { COLORS, hexToRgb } from '@/constants/colors';
+
 export interface ClassBoundaries {
   boundaries: number[];
   intervals: number;
@@ -264,9 +266,10 @@ export function generateDiffThumbnail(
         pixelData[pixelIdx + 2] = b;
         pixelData[pixelIdx + 3] = a;
       } else {
-        pixelData[pixelIdx] = 22;
-        pixelData[pixelIdx + 1] = 22;
-        pixelData[pixelIdx + 2] = 22;
+        const nc = hexToRgb(COLORS.diffLayer.noChange);
+        pixelData[pixelIdx] = Math.round(nc[0] * 255);
+        pixelData[pixelIdx + 1] = Math.round(nc[1] * 255);
+        pixelData[pixelIdx + 2] = Math.round(nc[2] * 255);
         pixelData[pixelIdx + 3] = 30;
       }
     }

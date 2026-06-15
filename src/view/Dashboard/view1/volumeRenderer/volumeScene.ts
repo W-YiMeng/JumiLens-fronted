@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import vertShader from './shaders/volume.vert.glsl';
 import fragShader from './shaders/volume.frag.glsl';
 import { volumeStore, type TFControlPoint } from '../../../../store/volumeStore';
+import { COLORS, hexToRgb } from '@/constants/colors';
 
 export class VolumeScene {
   private renderer: THREE.WebGLRenderer;
@@ -68,6 +69,8 @@ export class VolumeScene {
         uDiffMode: { value: false },
         uShowOriginal: { value: true },
         uShowDifference: { value: true },
+        uDiffColorGrowth: { value: new THREE.Vector3(...hexToRgb(COLORS.diffLayer.growth)) },
+        uDiffColorDecline: { value: new THREE.Vector3(...hexToRgb(COLORS.diffLayer.decline)) },
         // ── YG lighting / preview uniforms ──
         uDensityScale: { value: volumeStore.densityScale },
         uLightDir: { value: new THREE.Vector3(0.6, 0.6, -0.5).normalize() },
@@ -76,8 +79,8 @@ export class VolumeScene {
         uPreviewRange: { value: new THREE.Vector2(0.0, 1.0) },
         uPreviewColor: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
         uVolumeB: { value: null },
-        uPreviewColorPos: { value: new THREE.Vector3(1.0, 0.3, 0.2) },
-        uPreviewColorNeg: { value: new THREE.Vector3(0.2, 0.6, 1.0) },
+        uPreviewColorPos: { value: new THREE.Vector3(...hexToRgb(COLORS.diffLayer.growthPreview)) },
+        uPreviewColorNeg: { value: new THREE.Vector3(...hexToRgb(COLORS.diffLayer.declinePreview)) },
         uPreviewDiffScale: { value: 3.0 },
         uPreviewOverlay: { value: 1 },
         // ── ZYJ: 密度直方图筛选高亮 ──
@@ -431,8 +434,8 @@ export class VolumeScene {
     this.material.uniforms.uPreviewMode.value = 2;
     this.material.uniforms.uPreviewRange.value.set(range[0], range[1]);
     this.material.uniforms.uPreviewColor.value.set(1.0, 1.0, 1.0);
-    this.material.uniforms.uPreviewColorPos.value.set(1.0, 0.3, 0.2);
-    this.material.uniforms.uPreviewColorNeg.value.set(0.2, 0.6, 1.0);
+    this.material.uniforms.uPreviewColorPos.value.set(...hexToRgb(COLORS.diffLayer.growthPreview));
+    this.material.uniforms.uPreviewColorNeg.value.set(...hexToRgb(COLORS.diffLayer.declinePreview));
     this.material.uniforms.uPreviewDiffScale.value = 6.0;
     this.material.uniforms.uPreviewOverlay.value = overlayBase ? 1 : 0;
     this.material.uniforms.uStepSize.value = Math.min(prevStep, 1.0 / 96);
