@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import './index.less';
 import { COLORS } from '@/constants/colors';
+import { Button } from 'primereact/button';
 
 const CE = COLORS.evolution;
 
@@ -41,6 +42,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
   const containerRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<EvolutionData | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const [tooltip, setTooltip] = useState<{
     step: number;
     x: number;
@@ -98,7 +100,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     const n = data.timesteps.length;
 
     // Padding
-    const pad = { top: 16, right: 16, bottom: 42, left: 62 };
+    const pad = { top: 16, right: 16, bottom: 62, left: 62 };
     const chartW = cssW - pad.left - pad.right;
     const chartH = cssH - pad.top - pad.bottom;
 
@@ -132,7 +134,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
       const logVal = yLogMin + (yLogSpan / yTicks) * (yTicks - i);
       const rawVal = Math.pow(10, logVal);
       ctx.fillStyle = CE.labelY;
-      ctx.font = '9px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.font = '9px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       ctx.fillText(formatNum(rawVal), pad.left - 6, ly);
@@ -163,7 +165,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
 
     // ── X labels ──
     ctx.fillStyle = CE.labelX;
-    ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.font = '10px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (let i = 0; i <= xTicks; i++) {
@@ -172,7 +174,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     }
     // X axis label
     ctx.fillStyle = CE.labelX;
-    ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.font = '11px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.fillText('Timestep', pad.left + chartW / 2, chartYBottom + 22);
 
     // ── Y axis label ──
@@ -180,7 +182,7 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
     ctx.translate(12, pad.top + chartH / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillStyle = CE.labelYTitle;
-    ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.font = '11px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('密度 (log₁₀)', 0, 0);
     ctx.restore();
@@ -288,51 +290,6 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
 
     ctx.restore(); // un-clip
 
-    // ── Legend (top-right, outside clip) ──
-    const lgX = pad.left + chartW - 170;
-    const lgY = pad.top + 4;
-    const lgGap = 14;
-    const items = [
-      { label: 'min–max', color: CE.legendMinMax, type: 'fill' as const },
-      { label: 'p1–p99', color: CE.legendP1P99, type: 'fill' as const },
-      { label: 'mean±σ', color: CE.legendMeanSigma, type: 'fill' as const },
-      { label: 'median', color: CE.medianLine, type: 'dash' as const },
-      { label: 'mean', color: CE.meanLine, type: 'line' as const },
-    ];
-    for (let i = 0; i < items.length; i++) {
-      const iy = lgY + i * lgGap;
-      const it = items[i];
-
-      if (it.type === 'fill') {
-        ctx.fillStyle = it.color;
-        ctx.fillRect(lgX, iy, 12, 8);
-        ctx.strokeStyle = CE.legendBorder;
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(lgX, iy, 12, 8);
-      } else if (it.type === 'dash') {
-        ctx.strokeStyle = it.color;
-        ctx.lineWidth = 1.4;
-        ctx.setLineDash([4, 2]);
-        ctx.beginPath();
-        ctx.moveTo(lgX, iy + 4);
-        ctx.lineTo(lgX + 12, iy + 4);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      } else {
-        ctx.strokeStyle = it.color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(lgX, iy + 4);
-        ctx.lineTo(lgX + 12, iy + 4);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = CE.labelX;
-      ctx.font = '9px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(it.label, lgX + 16, iy + 4);
-    }
   }, [data, currentStep]);
 
   // ── Resize + redraw ──
@@ -422,7 +379,28 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
 
   return (
     <div className="evolution-chart-container" ref={containerRef}>
-      <div className="evolution-chart-title">密度统计演化</div>
+      <div className="evolution-chart-title">
+        <span className="title-text">密度统计演化</span>
+        <span className="title-actions">
+          <Button
+            text
+            rounded
+            size="small"
+            className={`legend-toggle${legendOpen ? ' active' : ''}`}
+            onClick={() => setLegendOpen(!legendOpen)}
+            tooltip="图例"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+              <circle cx="8" cy="6" r="2" fill="currentColor" />
+              <circle cx="16" cy="12" r="2" fill="currentColor" />
+              <circle cx="10" cy="18" r="2" fill="currentColor" />
+            </svg>
+          </Button>
+        </span>
+      </div>
       <div className="evolution-canvas-wrap">
         <canvas
           ref={canvasRef}
@@ -431,6 +409,30 @@ const EvolutionChart: React.FC<EvolutionChartProps> = ({ currentStep, onJumpToSt
           onMouseLeave={handleMouseLeave}
           style={{ cursor: 'pointer' }}
         />
+        {legendOpen && data && (
+          <div className="chart-legend-panel">
+            <div className="legend-item">
+              <span className="legend-swatch" style={{ background: CE.legendMinMax, border: '1px solid rgba(0,0,0,0.15)' }} />
+              <span className="legend-label">min–max</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-swatch" style={{ background: CE.legendP1P99, border: '1px solid rgba(0,0,0,0.15)' }} />
+              <span className="legend-label">p1–p99</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-swatch" style={{ background: CE.legendMeanSigma, border: '1px solid rgba(0,0,0,0.15)' }} />
+              <span className="legend-label">mean±σ</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-dash" style={{ borderTop: `2px dashed ${CE.medianLine}` }} />
+              <span className="legend-label">median</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-line" style={{ borderTop: `2px solid ${CE.meanLine}` }} />
+              <span className="legend-label">mean</span>
+            </div>
+          </div>
+        )}
         {tooltip && (
           <div
             className="evolution-tooltip"

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback } from 'react';
 import './index.less';
 import { COLORS } from '@/constants/colors';
+import { Button } from 'primereact/button';
 
 const CH = COLORS.histogram;
 
@@ -20,9 +21,9 @@ interface DensityHistogramProps {
   logBins: number[];
   logBinEdges: number[];
   timestep: number;
-  /** 原始数据的最小值（用于计算归一化上横轴） */
+  /** 原始数据的最小值 */
   dataMin: number;
-  /** 原始数据的最大值（用于计算归一化上横轴） */
+  /** 原始数据的最大值 */
   dataMax: number;
   onRangeSelect?: (range: { min: number; max: number } | null) => void;
   selectedRange?: { min: number; max: number } | null;
@@ -35,9 +36,6 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
   binEdges,
   logBins,
   logBinEdges,
-  timestep,
-  dataMin,
-  dataMax,
   onRangeSelect,
   selectedRange,
   statistics,
@@ -47,6 +45,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   // 始终使用对数分箱（直方图本质是对数密度直方图）
   const currentBins = logBins;
@@ -86,8 +85,8 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
 
     const width = cssW;
     const height = cssH;
-    // 留出上下双横轴 + Y轴的空间
-    const padding = { top: 48, right: 12, bottom: 60, left: 62 };
+    // 留出下方横轴 + Y轴的空间（无上横轴）
+    const padding = { top: 14, right: 15, bottom: 60, left: 55 };
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
 
@@ -193,15 +192,10 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     ctx.moveTo(padding.left, padding.top + chartHeight);
     ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
     ctx.stroke();
-    // 上 X 轴
-    ctx.beginPath();
-    ctx.moveTo(padding.left, padding.top);
-    ctx.lineTo(padding.left + chartWidth, padding.top);
-    ctx.stroke();
 
     // ── Y 轴标签（频数）──
     ctx.fillStyle = CH.labelY;
-    ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.font = '10px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     for (let i = 0; i <= yGridLines; i++) {
@@ -214,35 +208,20 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       ctx.fillText(label, padding.left - 8, y);
     }
 
-    // ── 下横轴标签（log₁₀ 原始密度）──
+    // ── 下横轴标签（log₁₀ 密度）──
     ctx.fillStyle = CH.labelX;
-    ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.font = '10px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
+    // binEdges = 10^logBinEdges，抵消 calculateLogHistogram 的 log，
+    // 得到数据原始坐标 = log₁₀(真实密度)
     for (let i = 0; i < numXLabels; i++) {
-      const binIndex = Math.floor((currentBinEdges.length - 1) * i / (numXLabels - 1));
-      const value = currentBinEdges[binIndex];
+      const binIndex = Math.floor((binEdges.length - 1) * i / (numXLabels - 1));
+      const value = binEdges[binIndex];
       const x = padding.left + (chartWidth / (numXLabels - 1)) * i;
       const label = value.toFixed(1);
       ctx.fillText(label, x, padding.top + chartHeight + 6);
-    }
-
-    // ── 上横轴标签（归一化 0-1 密度）──
-    ctx.fillStyle = CH.binUnselected;
-    ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-
-    const dataSpan = dataMax - dataMin;
-    for (let i = 0; i < numXLabels; i++) {
-      const binIndex = Math.floor((logBinEdges.length - 1) * i / (numXLabels - 1));
-      const logVal = logBinEdges[binIndex];
-      const rawVal = Math.pow(10, logVal);
-      const normVal = dataSpan > 0 ? (rawVal - dataMin) / dataSpan : 0;
-      const x = padding.left + (chartWidth / (numXLabels - 1)) * i;
-      const label = normVal.toFixed(2);
-      ctx.fillText(label, x, padding.top - 6);
     }
 
     // ── 轴标题 ──
@@ -251,42 +230,10 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     ctx.translate(14, padding.top + chartHeight / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillStyle = CH.labelY;
-    ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.font = '11px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('频数', 0, 0);
     ctx.restore();
-
-    // 下横轴标题
-    ctx.fillStyle = CH.labelX;
-    ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText('密度 (log₁₀)', padding.left + chartWidth / 2, padding.top + chartHeight + 26);
-
-    // 上横轴标题
-    ctx.fillStyle = CH.binUnselected;
-    ctx.font = '11px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('归一化密度 [0,1]', padding.left + chartWidth / 2, padding.top - 24);
-
-    // ── 图例 (右上) ──
-    const legendX = padding.left + chartWidth - 120;
-    const legendY = padding.top + 8;
-    ctx.fillStyle = CH.binSelected;
-    ctx.fillRect(legendX, legendY, 10, 10);
-    ctx.fillStyle = CH.labelX;
-    ctx.font = '10px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('已选', legendX + 14, legendY + 5);
-    ctx.fillStyle = CH.binUnselected;
-    ctx.fillRect(legendX + 45, legendY, 10, 10);
-    ctx.fillText('全部', legendX + 59, legendY + 5);
-    ctx.fillStyle = CH.labelY;
-    ctx.textBaseline = 'top';
-    ctx.fillText(`N=${stats.total.toLocaleString()}`, legendX, legendY + 18);
-    ctx.fillText(`峰值=${maxCount.toLocaleString()}`, legendX, legendY + 30);
 
     // ── 统计标注线 (竖线标注在直方图上) ──
     if (statistics && logBinEdges.length >= 2) {
@@ -297,53 +244,58 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       const toX = (rawVal: number) => {
         if (rawVal <= 0) return null;
         const logV = Math.log10(rawVal);
-        // Clamp to visible range
         if (logV < logMin || logV > logMax) return null;
         return padding.left + ((logV - logMin) / logSpan) * chartWidth;
       };
 
-      // 标注线定义: { key, value, color, dash, label, labelOffset }
-      const annotations: { value: number; color: string; dash: number[]; label: string; offsetY: number }[] = [
-        { value: statistics.p1,   color: CH.annotationP1P99, dash: [4, 3], label: 'P1',   offsetY: 0 },
-        { value: statistics.p99,  color: CH.annotationP1P99, dash: [4, 3], label: 'P99',  offsetY: 12 },
-        { value: statistics.mean, color: CH.annotationMean, dash: [],     label: 'Mean', offsetY: 0 },
-        { value: statistics.median, color: CH.annotationMedian, dash: [5, 3], label: 'Median', offsetY: 12 },
+      const annotations: { value: number; color: string; dash: number[]; label: string }[] = [
+        { value: statistics.p1,    color: CH.annotationP1P99,  dash: [4, 3], label: 'P1' },
+        { value: statistics.p99,   color: CH.annotationP1P99,  dash: [4, 3], label: 'P99' },
+        { value: statistics.mean,  color: CH.annotationMean,   dash: [],     label: 'Mean' },
+        { value: statistics.median,color: CH.annotationMedian,  dash: [5, 3], label: 'Median' },
       ];
 
-      // Optional min/max if within a reasonable range
       if (statistics.min > 0 && Math.log10(statistics.min) >= logMin) {
-        annotations.push({ value: statistics.min, color: CH.annotationMinMax, dash: [2, 4], label: 'Min', offsetY: 0 });
+        annotations.push({ value: statistics.min, color: CH.annotationMinMax, dash: [2, 4], label: 'Min' });
       }
       if (statistics.max > 0 && Math.log10(statistics.max) <= logMax) {
-        annotations.push({ value: statistics.max, color: CH.annotationMinMax, dash: [2, 4], label: 'Max', offsetY: 12 });
+        annotations.push({ value: statistics.max, color: CH.annotationMinMax, dash: [2, 4], label: 'Max' });
       }
 
-      // Sort by value so labels don't overlap too badly
+      // Sort by value so staggered labels don't overlap
       annotations.sort((a, b) => a.value - b.value);
 
-      for (const ann of annotations) {
+      // 2-row stagger: close values get different heights, avoiding overlap
+      const ROW_COUNT = 3;
+      const ROW_GAP = 14;
+
+      for (let i = 0; i < annotations.length; i++) {
+        const ann = annotations[i];
         const ax = toX(ann.value);
         if (ax === null) continue;
 
-        // Vertical line
+        // Full-height vertical line from top axis to bottom axis
         ctx.strokeStyle = ann.color;
         ctx.lineWidth = ann.dash.length > 0 ? 1.2 : 1.6;
         ctx.setLineDash(ann.dash);
         ctx.beginPath();
-        ctx.moveTo(ax, padding.top + 18); // start below top labels
+        ctx.moveTo(ax, padding.top);
         ctx.lineTo(ax, padding.top + chartHeight);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Label pill
+        // Staggered pill label
+        const row = i % ROW_COUNT;
+        const offsetY = row * ROW_GAP;
+
         const labelW = ctx.measureText(ann.label).width + 10;
         const labelH = 16;
         const lx = ax - labelW / 2;
-        const ly = padding.top + 2 + ann.offsetY;
+        const ly = padding.top + 3 + offsetY;
 
+        // Rounded pill background
         ctx.fillStyle = ann.color;
         ctx.beginPath();
-        // small rounded pill
         const lr = 3;
         const rx = lx, ry = ly, rw = labelW, rh = labelH;
         ctx.moveTo(rx + lr, ry);
@@ -358,15 +310,22 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
         ctx.closePath();
         ctx.fill();
 
+        // Pill border
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.stroke();
+
+        // Pill text
         ctx.fillStyle = CH.pillText;
-        ctx.font = 'bold 8px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.font = 'bold 9px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(ann.label, ax, ly + labelH / 2);
       }
     }
 
-  }, [currentBins, currentBinEdges, logBinEdges, stats, selectedRange, selectionStart, selectionEnd, timestep, dataMin, dataMax, statistics]);
+  }, [currentBins, logBinEdges, binEdges, stats, selectedRange, selectionStart, selectionEnd, statistics]);
 
   // ── 响应式重绘 ──
   React.useEffect(() => {
@@ -450,33 +409,34 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
   };
 
-  // ── 格式化选中范围显示 ──
-  const formatRangeDisplay = (range: { min: number; max: number }) => {
-    const rMin = Math.pow(10, range.min);
-    const rMax = Math.pow(10, range.max);
-    const dSpan = dataMax - dataMin;
-    const nMin = dSpan > 0 ? ((rMin - dataMin) / dSpan) : 0;
-    const nMax = dSpan > 0 ? ((rMax - dataMin) / dSpan) : 0;
-    return {
-      log: `[${range.min.toFixed(2)}, ${range.max.toFixed(2)}]`,
-      norm: `[${nMin.toFixed(3)}, ${nMax.toFixed(3)}]`,
-    };
-  };
-
-  const rangeDisplay = selectedRange ? formatRangeDisplay(selectedRange) : null;
-
   return (
     <div className="density-histogram" ref={containerRef}>
-       <div className="evolution-chart-title">密度分布直方图</div>
-      <div className="histogram-controls">
-      
-        <div className="controls-right">
+      <div className="evolution-chart-title">
+        <span className="title-text">密度分布直方图</span>
+        <span className="title-actions">
           {selectedRange && (
-            <button className="clear-btn" onClick={handleClearSelection}>
+            <Button outlined size="small" onClick={handleClearSelection}>
               ✕ 清除选择
-            </button>
+            </Button>
           )}
-        </div>
+          <Button
+            text
+            rounded
+            size="small"
+            className={`legend-toggle${legendOpen ? ' active' : ''}`}
+            onClick={() => setLegendOpen(!legendOpen)}
+            tooltip="图例"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+              <circle cx="8" cy="6" r="2" fill="currentColor" />
+              <circle cx="16" cy="12" r="2" fill="currentColor" />
+              <circle cx="10" cy="18" r="2" fill="currentColor" />
+            </svg>
+          </Button>
+        </span>
       </div>
 
       <div className="histogram-canvas-wrap">
@@ -488,20 +448,26 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
           onMouseLeave={handleMouseUp}
           style={{ cursor: isSelecting ? 'col-resize' : 'crosshair' }}
         />
+        {legendOpen && stats && (
+          <div className="chart-legend-panel">
+            <div className="legend-item">
+              <span className="legend-swatch" style={{ background: CH.binSelected }} />
+              <span className="legend-label">已选</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-swatch" style={{ background: CH.binUnselected }} />
+              <span className="legend-label">全部</span>
+            </div>
+            <div className="legend-divider" />
+            <div className="legend-item legend-stat">
+              <span className="legend-label">N={stats.total.toLocaleString()}</span>
+            </div>
+            <div className="legend-item legend-stat">
+              <span className="legend-label">峰值={stats.maxCount.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
       </div>
-
-      {rangeDisplay && (
-        <div className="selection-info">
-          <div className="info-row">
-            <span className="info-label">log₁₀ 范围</span>
-            <span className="info-value">{rangeDisplay.log}</span>
-          </div>
-          <div className="info-row">
-            <span className="info-label">归一化范围</span>
-            <span className="info-value norm">{rangeDisplay.norm}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

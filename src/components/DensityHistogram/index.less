@@ -1,72 +1,39 @@
+/* ═══════════════════════════════════════════════════════════
+   Density Histogram — clean card style
+   ═══════════════════════════════════════════════════════════ */
+
 .density-histogram {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
   overflow: hidden;
   box-sizing: border-box;
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
 
+  // ── 标题栏 (与左侧面板标题样式统一) ──
   .evolution-chart-title {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-size: 12px;
     font-weight: 600;
-    color: #1a1a1a;
-    text-align: center;
-    padding: 6px 0;
-    background: #fafafa;
-    border-bottom: 1px solid #e8e8e8;
-    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  }
+    color: hsl(var(--foreground));
+    padding: 5px 10px;
+    background: hsl(var(--secondary));
+    border-bottom: 1px solid hsl(var(--border));
+    font-family: var(--font-sans);
+    letter-spacing: 0.2px;
 
-  .histogram-controls {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    flex-shrink: 0;
-    padding: 4px 12px;
-
-    .histogram-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1a1a1a;
-      font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-
-      .step-badge {
-        display: inline-block;
-        font-size: 11px;
-        font-weight: 500;
-        color: #555;
-        background: #f5f5f5;
-        border: 1px solid #e8e8e8;
-        border-radius: 4px;
-        padding: 1px 8px;
-        margin-left: 6px;
-      }
-    }
-
-    .controls-right {
+    .title-actions {
       display: flex;
       align-items: center;
       gap: 8px;
-
-      .clear-btn {
-        padding: 4px 12px;
-        background: #fff;
-        border: 1px solid #ff4d4f;
-        border-radius: 4px;
-        color: #ff4d4f;
-        font-size: 11px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-
-        &:hover {
-          background: #fff1f0;
-        }
-      }
+      flex-shrink: 0;
     }
   }
 
@@ -83,36 +50,65 @@
     }
   }
 
-  .selection-info {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-around;
-    padding: 6px 10px;
-    background: #fffbe6;
-    border-top: 1px solid #ffe58f;
-    gap: 16px;
+  // ── 图例切换按钮 ──
+  .legend-toggle {
+    color: hsl(var(--muted-foreground));
+    transition: color 0.15s;
 
-    .info-row {
+    &.active,
+    &:hover {
+      color: hsl(var(--foreground));
+    }
+  }
+
+  // ── 图例弹出面板（圆角外框白底）──
+  .chart-legend-panel {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    padding: 8px 12px;
+    min-width: 120px;
+    font-family: var(--font-sans);
+
+    .legend-item {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      padding: 3px 0;
+      font-size: 11px;
+      color: hsl(var(--foreground));
 
-      .info-label {
-        font-size: 11px;
-        color: #8c8c8c;
-        font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      &.legend-stat {
+        padding-left: 0;
       }
+    }
 
-      .info-value {
-        font-size: 11px;
-        font-weight: 600;
-        color: #d46b08;
-        font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+    .legend-swatch {
+      width: 12px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
 
-        &.norm {
-          color: #1677ff;
-        }
-      }
+    .legend-line {
+      width: 12px;
+      height: 0;
+      flex-shrink: 0;
+    }
+
+    .legend-label {
+      white-space: nowrap;
+    }
+
+    .legend-divider {
+      height: 1px;
+      background: hsl(var(--border));
+      margin: 4px 0;
     }
   }
 }

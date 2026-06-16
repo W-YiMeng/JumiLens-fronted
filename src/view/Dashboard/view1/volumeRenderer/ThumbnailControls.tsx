@@ -1,95 +1,60 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { volumeStore, type ThumbnailCompareMode, type ThumbnailView } from '@/store/volumeStore';
+import { Slider } from 'primereact/slider';
+import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
 
 const ThumbnailControls: React.FC = observer(() => {
   return (
     <div className="thumb-ctls standalone">
       <div className="thumb-ctl-group">
         <label>视角</label>
-        <select
-          value={volumeStore.thumbnailView}
-          onChange={(e) => volumeStore.setThumbnailView(e.target.value as ThumbnailView)}
-        >
-          <option value="current">当前视角</option>
-          <option value="top">俯视</option>
-          <option value="front">正视</option>
-          <option value="side">侧视</option>
-        </select>
+        <Dropdown value={volumeStore.thumbnailView} onChange={(e) => volumeStore.setThumbnailView(e.value as ThumbnailView)}
+          options={[
+            { label: '当前视角', value: 'current' },
+            { label: '俯视', value: 'top' },
+            { label: '正视', value: 'front' },
+            { label: '侧视', value: 'side' },
+          ]}
+          className="h-auto py-1 text-xs" />
         {volumeStore.thumbnailView === 'current' && (
-          <button
-            className="thumb-btn"
-            onClick={() => volumeStore.refreshThumbnails()}
-            title="刷新当前视角缩略图"
-          >
+          <Button outlined size="small" onClick={() => volumeStore.refreshThumbnails()}
+            tooltip="刷新当前视角缩略图">
             刷新
-          </button>
+          </Button>
         )}
       </div>
 
       <div className="thumb-ctl-group">
         <label>对比</label>
-        <select
-          value={volumeStore.thumbnailCompareMode}
-          onChange={(e) =>
-            volumeStore.setThumbnailCompareMode(e.target.value as ThumbnailCompareMode)
-          }
-        >
-          <option value="off">关闭</option>
-          <option value="prev">上一步</option>
-          <option value="ref">参考步</option>
-        </select>
+        <Dropdown value={volumeStore.thumbnailCompareMode} onChange={(e) => volumeStore.setThumbnailCompareMode(e.value as ThumbnailCompareMode)}
+          options={[
+            { label: '关闭', value: 'off' },
+            { label: '上一步', value: 'prev' },
+            { label: '参考步', value: 'ref' },
+          ]}
+          className="h-auto py-1 text-xs" />
         {volumeStore.thumbnailCompareMode === 'ref' && (
-          <select
-            value={volumeStore.thumbnailCompareRefIndex}
-            onChange={(e) =>
-              volumeStore.setThumbnailCompareRefIndex(Number(e.target.value))
-            }
-          >
-            {volumeStore.thumbnailSteps.map((step, idx) => (
-              <option key={`r-${step}`} value={idx}>
-                第{step}步
-              </option>
-            ))}
-          </select>
+          <Dropdown value={String(volumeStore.thumbnailCompareRefIndex)} onChange={(e) => volumeStore.setThumbnailCompareRefIndex(Number(e.value))}
+            options={volumeStore.thumbnailSteps.map((step, idx) => ({ label: `第${step}步`, value: String(idx) }))}
+            className="h-auto py-1 text-xs" />
         )}
-        <button
-          className={`thumb-btn${volumeStore.thumbnailCompareOverlay ? ' active' : ''}`}
+        <Button
+          severity={volumeStore.thumbnailCompareOverlay ? undefined : "secondary"}
+          outlined={!volumeStore.thumbnailCompareOverlay}
+          size="small"
           onClick={() => volumeStore.toggleThumbnailCompareOverlay()}
-          title="叠加基础密度"
+          tooltip="叠加基础密度"
         >
           叠加
-        </button>
+        </Button>
       </div>
 
       <div className="thumb-ctl-group">
         <label>低密度</label>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volumeStore.thumbnailLowRange[0]}
-          onChange={(e) =>
-            volumeStore.setThumbnailLowRange(
-              Number(e.target.value),
-              volumeStore.thumbnailLowRange[1],
-            )
-          }
-        />
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volumeStore.thumbnailLowRange[1]}
-          onChange={(e) =>
-            volumeStore.setThumbnailLowRange(
-              volumeStore.thumbnailLowRange[0],
-              Number(e.target.value),
-            )
-          }
-        />
+        <Slider min={0} max={1} step={0.01} value={volumeStore.thumbnailLowRange[0]} onChange={(e) => volumeStore.setThumbnailLowRange(e.value as number, volumeStore.thumbnailLowRange[1])} className="h-3 flex-1 mx-0.5" />
+        <Slider min={0} max={1} step={0.01} value={volumeStore.thumbnailLowRange[1]} onChange={(e) => volumeStore.setThumbnailLowRange(volumeStore.thumbnailLowRange[0], e.value as number)} className="h-3 flex-1 mx-0.5" />
         <span className="ctl-range-val">
           {volumeStore.thumbnailLowRange[0].toFixed(2)}-{volumeStore.thumbnailLowRange[1].toFixed(2)}
         </span>
@@ -97,32 +62,8 @@ const ThumbnailControls: React.FC = observer(() => {
 
       <div className="thumb-ctl-group">
         <label>高密度</label>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volumeStore.thumbnailHighRange[0]}
-          onChange={(e) =>
-            volumeStore.setThumbnailHighRange(
-              Number(e.target.value),
-              volumeStore.thumbnailHighRange[1],
-            )
-          }
-        />
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volumeStore.thumbnailHighRange[1]}
-          onChange={(e) =>
-            volumeStore.setThumbnailHighRange(
-              volumeStore.thumbnailHighRange[0],
-              Number(e.target.value),
-            )
-          }
-        />
+        <Slider min={0} max={1} step={0.01} value={volumeStore.thumbnailHighRange[0]} onChange={(e) => volumeStore.setThumbnailHighRange(e.value as number, volumeStore.thumbnailHighRange[1])} className="h-3 flex-1 mx-0.5" />
+        <Slider min={0} max={1} step={0.01} value={volumeStore.thumbnailHighRange[1]} onChange={(e) => volumeStore.setThumbnailHighRange(volumeStore.thumbnailHighRange[0], e.value as number)} className="h-3 flex-1 mx-0.5" />
         <span className="ctl-range-val">
           {volumeStore.thumbnailHighRange[0].toFixed(2)}-{volumeStore.thumbnailHighRange[1].toFixed(2)}
         </span>

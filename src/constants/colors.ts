@@ -93,7 +93,7 @@ export const COLORS = {
     /** 选中 bin */
     binSelected: '#ff6b6b',
     /** 未选中 bin */
-    binUnselected: '#1677ff',
+    binUnselected: '#152c4d',
     /** 拖拽选区填充 */
     dragFill: 'rgba(255,107,107,0.12)',
     /** 拖拽选区描边 */
@@ -109,7 +109,7 @@ export const COLORS = {
     /** 下横轴标签 */
     labelX: '#555555',
     /** 上横轴标签 (归一化) */
-    labelXTop: '#1677ff',
+    labelXTop: '#ff16fb',
     /** P1 / P99 标注线 */
     annotationP1P99: '#ff4d4f',
     /** Mean 标注线 */

@@ -1,17 +1,15 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { volumeStore } from '@/store/volumeStore';
+import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
 import VolumeRenderer from './volumeRenderer';
 import TimeControls from './volumeRenderer/TimeControls';
-import TransferFunctionEditor from './volumeRenderer/TransferFunctionEditor';
-import ThumbnailControls from './volumeRenderer/ThumbnailControls';
+import RenderingInspector from './volumeRenderer/TransferFunctionEditor';
 import TailsLineChart from './TailsLineChart';
 import './index.less';
 
-type TopRightTab = 'tf' | 'controls';
-
 const View1 = observer(() => {
-    const [topRightTab, setTopRightTab] = useState<TopRightTab>('tf');
 
     const handleSortByChange = useCallback(() => {
         const entries: { step: number; total: number }[] = [];
@@ -42,36 +40,18 @@ const View1 = observer(() => {
 
     return (
         <div className="view1-root">
-            {/* ════ 左上: 3D立方体 + 传递函数 ════ */}
+            {/* ════ 标题栏: 3D立方体 (与右侧"密度分布直方图"标题样式一致) ════ */}
+            <div className="evolution-chart-title">3D 立方体</div>
+
+            {/* ════ 上半部分: 3D立方体 + 传递函数 ════ */}
             <div className="view1-top">
                 <div className="view1-cube">
-                    <div className="block-label">3D 立方体</div>
                     <div className="block-body cube-body">
                         <VolumeRenderer />
                     </div>
                 </div>
                 <div className="view1-tf">
-                    <div className="block-label tf-tabs">
-                        <button
-                            className={`tf-tab${topRightTab === 'tf' ? ' active' : ''}`}
-                            onClick={() => setTopRightTab('tf')}
-                        >
-                            传递函数
-                        </button>
-                        <button
-                            className={`tf-tab${topRightTab === 'controls' ? ' active' : ''}`}
-                            onClick={() => setTopRightTab('controls')}
-                        >
-                            视角控制
-                        </button>
-                    </div>
-                    <div className="block-body tf-body">
-                        {topRightTab === 'tf' ? (
-                            <TransferFunctionEditor mode="embedded" />
-                        ) : (
-                            <ThumbnailControls />
-                        )}
-                    </div>
+                    <RenderingInspector />
                 </div>
             </div>
 
@@ -81,14 +61,16 @@ const View1 = observer(() => {
 
                 {/* Row: [▶3%] [图表94%] [倍速3%] */}
                 <div className="chart-row">
-                    <button
+                    <Button
+                        text
+                        rounded
                         className="play-btn-inline"
                         onClick={() => volumeStore.togglePlay()}
-                        title={volumeStore.isPlaying ? '暂停' : '播放'}
+                        tooltip={volumeStore.isPlaying ? '暂停' : '播放'}
                         disabled={volumeStore.isLoading}
                     >
                         {volumeStore.isPlaying ? '⏸' : '▶'}
-                    </button>
+                    </Button>
                     <div className="tails-chart-wrapper">
                         <TailsLineChart
                             currentStep={volumeStore.currentStep}
@@ -97,16 +79,17 @@ const View1 = observer(() => {
                             onToggleThumbnailStep={handleToggleThumbnailStep}
                         />
                     </div>
-                    <select
-                        className="speed-select-inline"
-                        value={volumeStore.playSpeed}
-                        onChange={(e) => volumeStore.setPlaySpeed(Number(e.target.value))}
-                    >
-                        <option value={1}>1x</option>
-                        <option value={2}>2x</option>
-                        <option value={4}>4x</option>
-                        <option value={8}>8x</option>
-                    </select>
+                    <Dropdown
+                        value={String(volumeStore.playSpeed)}
+                        onChange={(e) => volumeStore.setPlaySpeed(Number(e.value))}
+                        options={[
+                            { label: '1x', value: '1' },
+                            { label: '2x', value: '2' },
+                            { label: '4x', value: '4' },
+                            { label: '8x', value: '8' },
+                        ]}
+                        className="speed-select-inline text-xs"
+                    />
                 </div>
 
                 {/* Thumbnail rows */}

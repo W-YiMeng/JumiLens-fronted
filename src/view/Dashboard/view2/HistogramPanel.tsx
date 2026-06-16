@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { DensityHistogram } from '@/components';
+import { Button } from 'primereact/button';
 import {
   loadNyxData,
   calculateLogHistogram,
@@ -59,7 +60,7 @@ const HistogramPanel: React.FC = observer(() => {
       <div className="panel-error">
         <h3>错误</h3>
         <p>{error}</p>
-        <button onClick={handleRetry}>重试</button>
+        <Button outlined onClick={handleRetry}>重试</Button>
       </div>
     );
   }

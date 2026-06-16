@@ -1,24 +1,51 @@
+/* ═══════════════════════════════════════════════════════════
+   Evolution Chart — clean card style
+   ═══════════════════════════════════════════════════════════ */
+
 .evolution-chart-container {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
   overflow: hidden;
   box-sizing: border-box;
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
 
+  // ── 标题栏 (与左侧面板标题样式统一) ──
   .evolution-chart-title {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-size: 12px;
     font-weight: 600;
-    color: #1a1a1a;
-    text-align: center;
-    padding: 6px 0;
-    background: #fafafa;
-    border-bottom: 1px solid #e8e8e8;
-    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: hsl(var(--foreground));
+    padding: 5px 10px;
+    background: hsl(var(--secondary));
+    border-bottom: 1px solid hsl(var(--border));
+    font-family: var(--font-sans);
+    letter-spacing: 0.2px;
+
+    .title-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+  }
+
+  // ── 图例切换按钮 ──
+  .legend-toggle {
+    color: hsl(var(--muted-foreground));
+    transition: color 0.15s;
+
+    &.active,
+    &:hover {
+      color: hsl(var(--foreground));
+    }
   }
 
   .evolution-canvas-wrap {
@@ -34,6 +61,59 @@
     }
   }
 
+  // ── 图例弹出面板（圆角外框白底）──
+  .chart-legend-panel {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    padding: 8px 12px;
+    min-width: 120px;
+    font-family: var(--font-sans);
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 0;
+      font-size: 11px;
+      color: hsl(var(--foreground));
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .legend-dash {
+      width: 12px;
+      height: 0;
+      flex-shrink: 0;
+    }
+
+    .legend-line {
+      width: 12px;
+      height: 0;
+      flex-shrink: 0;
+    }
+
+    .legend-label {
+      white-space: nowrap;
+    }
+
+    .legend-divider {
+      height: 1px;
+      background: hsl(var(--border));
+      margin: 4px 0;
+    }
+  }
+
   .evolution-loading,
   .evolution-error {
     display: flex;
@@ -41,35 +121,36 @@
     justify-content: center;
     flex: 1;
     font-size: 12px;
-    color: #999;
-    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: hsl(var(--muted-foreground));
+    font-family: var(--font-sans);
   }
 
   .evolution-error {
-    color: #ff4d4f;
+    color: hsl(var(--destructive));
   }
 
   .evolution-tooltip {
     position: absolute;
     pointer-events: none;
     z-index: 10;
-    background: rgba(30, 30, 40, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 5px;
-    padding: 6px 8px;
+    background: hsl(var(--foreground) / 0.92);
+    border: 1px solid hsl(var(--border) / 0.15);
+    border-radius: 6px;
+    padding: 6px 9px;
     font-size: 10px;
-    line-height: 1.4;
-    color: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    line-height: 1.5;
+    color: hsl(0 0% 95%);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
     min-width: 130px;
+    backdrop-filter: blur(8px);
+    font-family: var(--font-sans);
 
     .evolution-tooltip-step {
-      color: #fff;
       font-weight: 600;
       font-size: 10px;
-      margin-bottom: 3px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-      padding-bottom: 3px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid rgb(255 255 255 / 0.1);
+      padding-bottom: 4px;
     }
 
     .evolution-tooltip-grid {
@@ -78,22 +159,18 @@
       gap: 1px 8px;
 
       .et-label {
-        color: rgba(255, 255, 255, 0.55);
+        color: rgb(255 255 255 / 0.5);
         text-align: right;
         font-size: 9px;
       }
 
       .et-value {
-        color: rgba(255, 255, 255, 0.9);
-        font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+        color: rgb(255 255 255 / 0.9);
+        font-family: var(--font-mono);
         font-size: 9px;
 
-        &.et-hi {
-          color: #ffa940;
-        }
-        &.et-lo {
-          color: #69c0ff;
-        }
+        &.et-hi { color: hsl(35 85% 55%); }
+        &.et-lo { color: hsl(200 80% 60%); }
       }
     }
   }

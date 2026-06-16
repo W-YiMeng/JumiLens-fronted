@@ -17,8 +17,8 @@ const tailsData = tailsRaw as Record<string, TailsStepData>;
 // ── Shorthand ──
 const C = COLORS.timeAxis;
 
-// ── Margins ──
-const M = { top: 18, right: 14, bottom: 26, left: 38 };
+// ── Margins (tight for raw skewness, no wasted space) ──
+const M = { top: 4, right: 1, bottom: 18, left: 20 };
 
 interface TailsLineChartProps {
   currentStep: number;
@@ -33,28 +33,23 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
   const [dims, setDims] = useState({ w: 300, h: 80 });
   const [tooltip, setTooltip] = useState<{ x: number; y: number; step: number } | null>(null);
 
-  // ── Process data (raw + normalized) ──
-  const { steps, normalized, rawValues } = useMemo(() => {
+  // ── Process data (raw skewness only, no normalization) ──
+  const { steps, points, valueExtent } = useMemo(() => {
     const keys = Object.keys(tailsData).map(Number).sort((a, b) => a - b);
     const maxStep = keys[keys.length - 1];
-    const skewRaw: number[] = [], topRaw: number[] = [], botRaw: number[] = [];
+    const skewRaw: number[] = [];
     for (let i = 0; i <= maxStep; i++) {
       const d = tailsData[String(i)];
-      if (d) { skewRaw.push(d.skewness); topRaw.push(d.top1pct.avg_size); botRaw.push(d.bot1pct.avg_size); }
+      if (d) { skewRaw.push(d.skewness); }
     }
-    const norm = (arr: number[]) => {
-      const min = Math.min(...arr), max = Math.max(...arr), range = max - min || 1;
-      return arr.map(v => (v - min) / range);
-    };
     const toPoints = (vals: number[]): DataPoint[] => vals.map((v, i) => ({ step: i, value: v }));
+    const min = Math.min(...skewRaw);
+    const max = Math.max(...skewRaw);
+    const pad = (max - min) * 0.1 || 0.1;
     return {
       steps: maxStep,
-      normalized: {
-        skewness: toPoints(norm(skewRaw)),
-        topAvgSize: toPoints(norm(topRaw)),
-        botAvgSize: toPoints(norm(botRaw)),
-      },
-      rawValues: { skewness: skewRaw, topAvgSize: topRaw, botAvgSize: botRaw },
+      points: toPoints(skewRaw),
+      valueExtent: [min - pad, max + pad] as [number, number],
     };
   }, []);
 
@@ -85,19 +80,19 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
 
     const g = svg.append('g').attr('transform', `translate(${M.left},${M.top})`);
 
-    // ── Scales ──
+    // ── Scales (raw skewness extent) ──
     const xScale = d3.scaleLinear().domain([0, steps]).range([0, iW]);
-    const yScale = d3.scaleLinear().domain([0, 1]).range([iH, 0]);
+    const yScale = d3.scaleLinear().domain(valueExtent).range([iH, 0]);
 
-    // ── Grid ──
-    const gridY = [0, 0.25, 0.5, 0.75, 1.0];
+    // ── Horizontal grid (5 ticks across the raw range) ──
+    const yTicks = yScale.ticks(5);
     g.selectAll('.grid-h')
-      .data(gridY)
+      .data(yTicks)
       .join('line')
       .attr('class', 'grid-h')
       .attr('x1', 0).attr('x2', iW)
       .attr('y1', d => yScale(d)).attr('y2', d => yScale(d))
-      .attr('stroke', d => d === 0 || d === 1 ? C.gridMajor : C.grid)
+      .attr('stroke', C.grid)
       .attr('stroke-width', 0.5);
 
     const gridX = d3.range(0, steps + 1, 10);
@@ -121,17 +116,17 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
       .call(xAxis)
       .call(g => g.select('.domain').attr('stroke', C.axis).attr('stroke-width', 0.6))
       .call(g => g.selectAll('.tick line').attr('stroke', C.axis).attr('stroke-width', 0.4))
-      .call(g => g.selectAll('.tick text').attr('fill', C.tickText).attr('font-size', 9).attr('font-family', 'sans-serif'));
+      .call(g => g.selectAll('.tick text').attr('fill', C.tickText).attr('font-size', 9).attr('font-family', '"Inter", sans-serif'));
 
     const yAxis = d3.axisLeft(yScale)
       .ticks(5)
       .tickSize(4)
-      .tickFormat(d3.format('.1f'));
+      .tickFormat(d3.format('.2f'));
     g.append('g').attr('class', 'y-axis')
       .call(yAxis)
       .call(g => g.select('.domain').attr('stroke', 'none'))
       .call(g => g.selectAll('.tick line').attr('stroke', C.axis).attr('stroke-width', 0.4))
-      .call(g => g.selectAll('.tick text').attr('fill', C.tickText).attr('font-size', 9).attr('font-family', 'sans-serif').attr('x', -3));
+      .call(g => g.selectAll('.tick text').attr('fill', C.tickText).attr('font-size', 8).attr('font-family', '"Inter", sans-serif').attr('x', -3));
 
     // ── Area generator (skewness) ──
     const areaGen = d3.area<DataPoint>()
@@ -157,26 +152,14 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
     grad.append('stop').attr('offset', '50%').attr('stop-color', C.skewness).attr('stop-opacity', 0.10);
     grad.append('stop').attr('offset', '100%').attr('stop-color', C.skewness).attr('stop-opacity', 0.02);
 
-    g.append('path').datum(normalized.skewness)
+    g.append('path').datum(points)
       .attr('fill', `url(#${gradId})`)
       .attr('d', areaGen);
 
     // ── Skewness line ──
-    g.append('path').datum(normalized.skewness)
+    g.append('path').datum(points)
       .attr('fill', 'none').attr('stroke', C.skewness)
       .attr('stroke-width', 1.2).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round')
-      .attr('d', lineGen);
-
-    // ── High density line ──
-    g.append('path').datum(normalized.topAvgSize)
-      .attr('fill', 'none').attr('stroke', C.highDensity)
-      .attr('stroke-width', 1.0).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round')
-      .attr('d', lineGen);
-
-    // ── Low density line ──
-    g.append('path').datum(normalized.botAvgSize)
-      .attr('fill', 'none').attr('stroke', C.lowDensity)
-      .attr('stroke-width', 1.0).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round')
       .attr('d', lineGen);
 
     // ── Thumbnail markers ──
@@ -211,19 +194,13 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
         .attr('stroke-dasharray', '5,4')
         .style('pointer-events', 'none');
 
-      // Dots at intersections
-      const skewY = yScale(normalized.skewness[cs]?.value ?? 0);
-      const topY = yScale(normalized.topAvgSize[cs]?.value ?? 0);
-      const botY = yScale(normalized.botAvgSize[cs]?.value ?? 0);
+      // Dot at intersection
+      const skewY = yScale(points[cs]?.value ?? valueExtent[0]);
 
       g.append('circle').attr('cx', cx).attr('cy', skewY).attr('r', 2.2)
         .attr('fill', C.skewness).attr('stroke', C.dotStroke).attr('stroke-width', 0.8);
-      g.append('circle').attr('cx', cx).attr('cy', topY).attr('r', 1.8)
-        .attr('fill', C.highDensity).attr('stroke', C.dotStroke).attr('stroke-width', 0.6);
-      g.append('circle').attr('cx', cx).attr('cy', botY).attr('r', 1.8)
-        .attr('fill', C.lowDensity).attr('stroke', C.dotStroke).attr('stroke-width', 0.6);
     }
-  }, [dims, steps, normalized, thumbnailSteps, currentStep]);
+  }, [dims, steps, points, valueExtent, thumbnailSteps, currentStep]);
 
   // ── Interaction handlers ──
   const eventToStep = useCallback((clientX: number) => {
@@ -252,13 +229,9 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
 
   const handleMouseLeave = useCallback(() => setTooltip(null), []);
 
-  // ── Tooltip data (uses raw values, not normalized) ──
+  // ── Tooltip data (raw skewness value) ──
   const tooltipValues = tooltip
-    ? {
-        skewness: rawValues.skewness[tooltip.step]?.toFixed(5),
-        topAvgSize: rawValues.topAvgSize[tooltip.step]?.toFixed(2),
-        botAvgSize: rawValues.botAvgSize[tooltip.step]?.toFixed(2),
-      }
+    ? { skewness: points[tooltip.step]?.value?.toFixed(5) ?? '-' }
     : null;
 
   return (
@@ -268,8 +241,6 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
       {/* Legend */}
       <div className="tails-chart-legend">
         <span style={{ color: C.skewness }}>▨ 偏度</span>
-        <span style={{ color: C.highDensity }}>— 高密度</span>
-        <span style={{ color: C.lowDensity }}>— 低密度</span>
       </div>
 
       {/* SVG (D3 draws into this) */}
@@ -279,10 +250,8 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
       {/* Tooltip */}
       {tooltip && tooltipValues && (
         <div className="tails-chart-tooltip" style={{ left: tooltip.x + 12, top: Math.max(2, tooltip.y - 50) }}>
-          <div className="tails-chart-tooltip-step">Step {tooltip.step}</div>
+          <div className="tails-chart-tooltip-step">时间步 {tooltip.step}</div>
           <div style={{ color: C.skewness }}>偏度 {tooltipValues.skewness}</div>
-          <div style={{ color: C.highDensity }}>高密度 {tooltipValues.topAvgSize}</div>
-          <div style={{ color: C.lowDensity }}>低密度 {tooltipValues.botAvgSize}</div>
           <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 'clamp(7px, 0.5vw, 9px)', marginTop: 2, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 2 }}>
             {thumbnailSteps.includes(tooltip.step) ? 'Shift+点击 移除缩略图' : 'Shift+点击 加入缩略图'}
           </div>
