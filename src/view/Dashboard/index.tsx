@@ -11,7 +11,7 @@ const Dashboard: React.FC = () => {
     return (
         <div className='dashboard-root'>
             <header className='header-root'>
-                <span className='header-title'>ChinaVIS2026</span>
+                <span className='header-title'>CosmicCube</span>
                 <Chip
                     label={`时间步： ${volumeStore.currentStep} / 99`}
                     className="font-mono text-xs border-white/20 text-white bg-transparent

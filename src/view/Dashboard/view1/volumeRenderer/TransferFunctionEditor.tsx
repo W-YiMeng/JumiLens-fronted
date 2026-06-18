@@ -352,7 +352,7 @@ const ModelParamsTab: React.FC = observer(() => {
     <div className="grid gap-5 pb-4">
       {/* 传递函数 */}
       <div className="grid gap-2.5">
-        <SectionHeading>传递函数</SectionHeading>
+        <SectionHeading>传递函数配置</SectionHeading>
         <TfRampCanvas selectedIndex={selectedIndex} onSelectIndex={setSelectedIndex} />
         <ControlPointEditor selectedIndex={selectedIndex} />
       </div>
@@ -373,7 +373,7 @@ const ModelParamsTab: React.FC = observer(() => {
 
       {/* 光照 */}
       <div className="grid gap-2">
-        <SectionHeading>光照</SectionHeading>
+        <SectionHeading>光照效果</SectionHeading>
         <SliderRow label="方位角" value={volumeStore.lightAzimuth} displayValue={`${Math.round(volumeStore.lightAzimuth)}°`} min={0} max={360} step={1} onValueChange={(v) => volumeStore.setLightAzimuth(v)} />
         <SliderRow label="仰角" value={volumeStore.lightElevation} displayValue={`${Math.round(volumeStore.lightElevation)}°`} min={-20} max={80} step={1} onValueChange={(v) => volumeStore.setLightElevation(v)} />
         <SliderRow label="强度" value={volumeStore.lightIntensity} displayValue={volumeStore.lightIntensity.toFixed(1)} min={0.2} max={2.5} step={0.1} onValueChange={(v) => volumeStore.setLightIntensity(v)} />
@@ -390,7 +390,7 @@ const DiffAnalysisTab: React.FC = observer(() => {
     <div className="grid gap-5 pb-4">
       {/* 缩略图视角 + 对比模式 */}
       <div className="grid gap-2">
-        <SectionHeading>缩略图视角</SectionHeading>
+        <SectionHeading>二维缩略图视角设置</SectionHeading>
         <div className="flex items-center gap-2">
           <Dropdown value={volumeStore.thumbnailView} onChange={(e) => volumeStore.setThumbnailView(e.value as ThumbnailView)}
             options={[
@@ -436,7 +436,7 @@ const DiffAnalysisTab: React.FC = observer(() => {
 
       {/* 差异分析 */}
       <div className="grid gap-2">
-        <SectionHeading>差异分析</SectionHeading>
+        <SectionHeading>三维体渲染差异分析</SectionHeading>
         <div className="flex items-center justify-between">
           <span className="text-xs text-foreground/80">差异模式</span>
           <div className="segmented-control">
@@ -464,7 +464,7 @@ const DiffAnalysisTab: React.FC = observer(() => {
               className={`pill-toggle pill-toggle--diff ${volumeStore.showDifference ? 'active' : ''}`}
               onClick={(e) => { e.preventDefault(); volumeStore.setShowDifference(!volumeStore.showDifference); }}
             >
-              <span className="pill-toggle__dot" />变化着色
+              <span className="pill-toggle__dot" />差异渲染
             </button>
           </div>
         </div>
@@ -477,7 +477,7 @@ const DiffAnalysisTab: React.FC = observer(() => {
                 const loPct = volumeStore.lowPercentile;
                 const hiPct = volumeStore.highPercentile;
                 const midPct = (hiPct - loPct).toFixed(1);
-                const names = [`低密度 (底部 ${loPct}%)`, `正常 (中间 ${midPct}%)`, `高密度 (顶部 ${(100 - hiPct).toFixed(1)}%)`];
+                const names = [`低密度 (${loPct}%)`, `正常 (${midPct}%)`, `高密度 (${(100 - hiPct).toFixed(1)}%)`];
                 return Array.from({ length: volumeStore.classBoundaries.length - 1 }, (_, i) => {
                   const lo = volumeStore.classBoundaries[i];
                   const hi = volumeStore.classBoundaries[i + 1];
@@ -493,7 +493,7 @@ const DiffAnalysisTab: React.FC = observer(() => {
 
       {/* 分类百分位 */}
       <div className="grid gap-2">
-        <SectionHeading>分类百分位</SectionHeading>
+        <SectionHeading>三维体渲染密度设置</SectionHeading>
         <div>
           <SliderRow label="低密度 %" value={volumeStore.lowPercentile} displayValue={`${volumeStore.lowPercentile.toFixed(1)}%`} min={0.1} max={49} step={0.5} onValueChange={(v) => volumeStore.setLowPercentile(v)} />
           {volumeStore.classBoundaries.length >= 3 && (
@@ -512,7 +512,7 @@ const DiffAnalysisTab: React.FC = observer(() => {
 
       {/* 密度范围 */}
       <div className="grid gap-2">
-        <SectionHeading>密度范围</SectionHeading>
+        <SectionHeading>二维缩略图密度设置</SectionHeading>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-foreground/70">低密度</span>
@@ -551,7 +551,7 @@ const RenderingInspector: React.FC = observer(() => {
         <button type="button"
           className={`inspector-tab ${activeTab === 'params' ? 'active' : ''}`}
           onClick={(e) => { e.preventDefault(); setActiveTab('params'); }}
-        >模型参数设置</button>
+        >渲染配置</button>
         <button type="button"
           className={`inspector-tab ${activeTab === 'diff' ? 'active' : ''}`}
           onClick={(e) => { e.preventDefault(); setActiveTab('diff'); }}

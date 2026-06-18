@@ -497,7 +497,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
   return (
     <div className="density-histogram" ref={containerRef}>
       <div className="evolution-chart-title">
-        <span className="title-text">密度分布直方图</span>
+        <span className="title-text">对数密度分布直方图</span>
         <span className="title-actions">
           {/* ── 对比输入框 + 开关 ── */}
           <span className={`comparison-group${comparisonEnabled ? ' active' : ''}`}>

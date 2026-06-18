@@ -41,7 +41,7 @@ const View1 = observer(() => {
     return (
         <div className="view1-root">
             {/* ════ 标题栏: 3D立方体 (与右侧"密度分布直方图"标题样式一致) ════ */}
-            <div className="evolution-chart-title">3D 立方体</div>
+            <div className="evolution-chart-title">时空密度差异多维对比</div>
 
             {/* ════ 上半部分: 3D立方体 + 传递函数 ════ */}
             <div className="view1-top">
