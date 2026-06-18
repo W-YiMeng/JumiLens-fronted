@@ -29,16 +29,40 @@ interface DensityHistogramProps {
   selectedRange?: { min: number; max: number } | null;
   /** 统计信息，叠放在直方图上 */
   statistics?: StatisticsOverlay | null;
+  // ── 固定横轴（全局范围）──
+  /** 全局 log₁₀ 最小值，用于固定横轴 */
+  globalLogMin?: number;
+  /** 全局 log₁₀ 最大值，用于固定横轴 */
+  globalLogMax?: number;
+  // ── 对比功能 ──
+  /** 对比时间步的 logBins */
+  comparisonLogBins?: number[];
+  /** 对比时间步的 logBinEdges */
+  comparisonLogBinEdges?: number[];
+  /** 对比时间步号 */
+  comparisonTimestep?: number;
+  /** 是否启用对比 */
+  comparisonEnabled: boolean;
+  /** 切换对比开关 */
+  onComparisonToggle: (enabled: boolean) => void;
+  /** 对比时间步变更 */
+  onComparisonTimestepChange: (timestep: number) => void;
 }
 
 const DensityHistogram: React.FC<DensityHistogramProps> = ({
-  bins,
-  binEdges,
   logBins,
   logBinEdges,
   onRangeSelect,
   selectedRange,
   statistics,
+  globalLogMin,
+  globalLogMax,
+  comparisonLogBins,
+  comparisonLogBinEdges,
+  comparisonTimestep,
+  comparisonEnabled,
+  onComparisonToggle,
+  onComparisonTimestepChange,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,15 +75,39 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
   const currentBins = logBins;
   const currentBinEdges = logBinEdges;
 
-  // 计算统计数据
+  // ── 确定横轴范围 ──
+  const xMin = useMemo(() => {
+    if (globalLogMin !== undefined && globalLogMax !== undefined) return globalLogMin;
+    return currentBinEdges.length > 0 ? currentBinEdges[0] : 0;
+  }, [globalLogMin, globalLogMax, currentBinEdges]);
+
+  const xMax = useMemo(() => {
+    if (globalLogMin !== undefined && globalLogMax !== undefined) return globalLogMax;
+    return currentBinEdges.length > 0 ? currentBinEdges[currentBinEdges.length - 1] : 1;
+  }, [globalLogMin, globalLogMax, currentBinEdges]);
+
+  const xSpan = useMemo(() => xMax - xMin || 1, [xMax, xMin]);
+
+  // ── 计算统计数据（统一 y 轴上限）──
   const stats = useMemo(() => {
-    if (currentBins.length === 0) return null;
+    let maxCount = 0;
+    let total = 0;
 
-    const total = currentBins.reduce((sum, count) => sum + count, 0);
-    const maxCount = Math.max(...currentBins);
+    for (let i = 0; i < currentBins.length; i++) {
+      if (currentBins[i] > maxCount) maxCount = currentBins[i];
+      total += currentBins[i];
+    }
 
+    // 如果有对比数据，取两者中较大的 maxCount
+    if (comparisonEnabled && comparisonLogBins) {
+      for (let i = 0; i < comparisonLogBins.length; i++) {
+        if (comparisonLogBins[i] > maxCount) maxCount = comparisonLogBins[i];
+      }
+    }
+
+    if (total === 0 && maxCount === 0) return null;
     return { total, maxCount };
-  }, [currentBins]);
+  }, [currentBins, comparisonLogBins, comparisonEnabled]);
 
   // ── 绘制直方图 ──────────────────────────────────────────────
   const drawHistogram = useCallback(() => {
@@ -107,7 +155,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       ctx.stroke();
     }
 
-    // ── 垂直网格线（与上下横轴标签对齐）──
+    // ── 垂直网格线 ──
     ctx.strokeStyle = CH.grid;
     ctx.setLineDash([3, 3]);
     const numXLabels = 7;
@@ -120,22 +168,27 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
     ctx.setLineDash([]);
 
-    // ── 直方图条形 ──
-    const binWidth = chartWidth / currentBins.length;
+    // ── 计算当前直方图的条形宽度 (log space 均匀分箱) ──
+    const currentBinLogWidth = currentBinEdges.length > 1
+      ? currentBinEdges[1] - currentBinEdges[0]
+      : 0;
+    const currentBinDrawWidth = (currentBinLogWidth / xSpan) * chartWidth;
     const maxCount = stats.maxCount;
 
+    // ── 直方图条形（当前时间步，先画作底层）──
     for (let i = 0; i < currentBins.length; i++) {
       const count = currentBins[i];
       if (count === 0) continue;
       const barHeight = (count / maxCount) * chartHeight;
-      const x = padding.left + i * binWidth;
+      const edge = currentBinEdges[i];
+      const x = padding.left + ((edge - xMin) / xSpan) * chartWidth;
       const y = padding.top + chartHeight - barHeight;
 
       // 判断是否在选中范围内
       let isSelected = false;
-      if (selectedRange && logBinEdges.length > i) {
-        const binMin = logBinEdges[i];
-        const binMax = logBinEdges[i + 1] ?? binMin;
+      if (selectedRange && currentBinEdges.length > i) {
+        const binMin = currentBinEdges[i];
+        const binMax = currentBinEdges[i + 1] ?? binMin;
         isSelected = binMin >= selectedRange.min && binMax <= selectedRange.max;
       }
 
@@ -145,8 +198,27 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
         ctx.fillStyle = CH.binUnselected;
       }
 
-      const gap = Math.max(0.5, binWidth * 0.08);
-      ctx.fillRect(x + gap, y, binWidth - gap * 2, barHeight);
+      const gap = Math.max(0.5, currentBinDrawWidth * 0.08);
+      ctx.fillRect(x + gap, y, currentBinDrawWidth - gap * 2, barHeight);
+    }
+
+    // ── 绘制对比直方图条形（上层，半透明 → 重叠区颜色混合、差异区一目了然）──
+    if (comparisonEnabled && comparisonLogBins && comparisonLogBinEdges && comparisonLogBinEdges.length > 1) {
+      const compBinLogWidth = comparisonLogBinEdges[1] - comparisonLogBinEdges[0];
+      const compBinDrawWidth = (compBinLogWidth / xSpan) * chartWidth;
+
+      for (let i = 0; i < comparisonLogBins.length; i++) {
+        const count = comparisonLogBins[i];
+        if (count === 0) continue;
+        const barHeight = (count / maxCount) * chartHeight;
+        const edge = comparisonLogBinEdges[i];
+        const x = padding.left + ((edge - xMin) / xSpan) * chartWidth;
+        const y = padding.top + chartHeight - barHeight;
+
+        ctx.fillStyle = CH.comparisonBin;
+        const gap = Math.max(0.5, compBinDrawWidth * 0.08);
+        ctx.fillRect(x + gap, y, compBinDrawWidth - gap * 2, barHeight);
+      }
     }
 
     // ── 选中区域（拖拽中）──
@@ -163,20 +235,16 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     // ── 已确认选中范围指示 ──
-    if (selectedRange && logBinEdges.length > 0) {
-      const minIndex = logBinEdges.findIndex(edge => edge >= selectedRange.min);
-      const maxIndex = logBinEdges.findIndex(edge => edge >= selectedRange.max);
-      if (minIndex !== -1 && maxIndex !== -1) {
-        const sx = padding.left + minIndex * binWidth;
-        const ex = padding.left + maxIndex * binWidth;
-        ctx.fillStyle = CH.confirmedFill;
-        ctx.fillRect(sx, padding.top, ex - sx, chartHeight);
-        ctx.strokeStyle = CH.confirmedStroke;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([5, 3]);
-        ctx.strokeRect(sx, padding.top, ex - sx, chartHeight);
-        ctx.setLineDash([]);
-      }
+    if (selectedRange && currentBinEdges.length > 0) {
+      const sx = padding.left + ((selectedRange.min - xMin) / xSpan) * chartWidth;
+      const ex = padding.left + ((selectedRange.max - xMin) / xSpan) * chartWidth;
+      ctx.fillStyle = CH.confirmedFill;
+      ctx.fillRect(sx, padding.top, ex - sx, chartHeight);
+      ctx.strokeStyle = CH.confirmedStroke;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 3]);
+      ctx.strokeRect(sx, padding.top, ex - sx, chartHeight);
+      ctx.setLineDash([]);
     }
 
     // ── 坐标轴线 ──
@@ -208,17 +276,15 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       ctx.fillText(label, padding.left - 8, y);
     }
 
-    // ── 下横轴标签（log₁₀ 密度）──
+    // ── 下横轴标签（使用全局范围，固定不变）──
     ctx.fillStyle = CH.labelX;
     ctx.font = '10px "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
-    // binEdges = 10^logBinEdges，抵消 calculateLogHistogram 的 log，
-    // 得到数据原始坐标 = log₁₀(真实密度)
     for (let i = 0; i < numXLabels; i++) {
-      const binIndex = Math.floor((binEdges.length - 1) * i / (numXLabels - 1));
-      const value = binEdges[binIndex];
+      const logValue = xMin + (xSpan / (numXLabels - 1)) * i;
+      const value = Math.pow(10, logValue);
       const x = padding.left + (chartWidth / (numXLabels - 1)) * i;
       const label = value.toFixed(1);
       ctx.fillText(label, x, padding.top + chartHeight + 6);
@@ -236,16 +302,12 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     ctx.restore();
 
     // ── 统计标注线 (竖线标注在直方图上) ──
-    if (statistics && logBinEdges.length >= 2) {
-      const logMin = logBinEdges[0];
-      const logMax = logBinEdges[logBinEdges.length - 1];
-      const logSpan = logMax - logMin || 1;
-
+    if (statistics && currentBinEdges.length >= 2) {
       const toX = (rawVal: number) => {
         if (rawVal <= 0) return null;
         const logV = Math.log10(rawVal);
-        if (logV < logMin || logV > logMax) return null;
-        return padding.left + ((logV - logMin) / logSpan) * chartWidth;
+        if (logV < xMin || logV > xMax) return null;
+        return padding.left + ((logV - xMin) / xSpan) * chartWidth;
       };
 
       const annotations: { value: number; color: string; dash: number[]; label: string }[] = [
@@ -255,10 +317,10 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
         { value: statistics.median,color: CH.annotationMedian,  dash: [5, 3], label: 'Median' },
       ];
 
-      if (statistics.min > 0 && Math.log10(statistics.min) >= logMin) {
+      if (statistics.min > 0 && Math.log10(statistics.min) >= xMin) {
         annotations.push({ value: statistics.min, color: CH.annotationMinMax, dash: [2, 4], label: 'Min' });
       }
-      if (statistics.max > 0 && Math.log10(statistics.max) <= logMax) {
+      if (statistics.max > 0 && Math.log10(statistics.max) <= xMax) {
         annotations.push({ value: statistics.max, color: CH.annotationMinMax, dash: [2, 4], label: 'Max' });
       }
 
@@ -325,7 +387,8 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
       }
     }
 
-  }, [currentBins, logBinEdges, binEdges, stats, selectedRange, selectionStart, selectionEnd, statistics]);
+  }, [currentBins, currentBinEdges, stats, selectedRange, selectionStart, selectionEnd, statistics,
+      xMin, xMax, xSpan, comparisonEnabled, comparisonLogBins, comparisonLogBinEdges]);
 
   // ── 响应式重绘 ──
   React.useEffect(() => {
@@ -351,7 +414,7 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const cssW = canvas.getBoundingClientRect().width;
-    const padding = { left: 62, right: 12 };
+    const padding = { left: 55, right: 15 };
     const chartWidth = cssW - padding.left - padding.right;
 
     if (x >= padding.left && x <= padding.left + chartWidth) {
@@ -382,20 +445,22 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
 
     const cssW = canvas.getBoundingClientRect().width;
-    const padding = { left: 62, right: 12 };
+    const padding = { left: 55, right: 15 };
     const chartWidth = cssW - padding.left - padding.right;
-    const binWidth = chartWidth / currentBins.length;
 
+    // 将像素坐标映射回 log 空间
     const startX = Math.min(selectionStart, selectionEnd);
     const endX = Math.max(selectionStart, selectionEnd);
 
-    const startBin = Math.floor((startX - padding.left) / binWidth);
-    const endBin = Math.floor((endX - padding.left) / binWidth);
+    const logMin = xMin + ((startX - padding.left) / chartWidth) * xSpan;
+    const logMax = xMin + ((endX - padding.left) / chartWidth) * xSpan;
 
-    if (startBin >= 0 && endBin < currentBinEdges.length - 1 && startBin <= endBin) {
-      const minDensity = logBinEdges[Math.max(0, startBin)];
-      const maxDensity = logBinEdges[Math.min(logBinEdges.length - 1, endBin + 1)];
-      onRangeSelect({ min: minDensity, max: maxDensity });
+    // 限制在合理范围内
+    const clampedMin = Math.max(xMin, Math.min(xMax, logMin));
+    const clampedMax = Math.max(xMin, Math.min(xMax, logMax));
+
+    if (clampedMin < clampedMax) {
+      onRangeSelect({ min: clampedMin, max: clampedMax });
     }
 
     setIsSelecting(false);
@@ -409,11 +474,56 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
     }
   };
 
+  // ── 对比输入处理 ──
+  const handleComparisonInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    // 允许空值以方便用户清空后重新输入
+    if (raw === '') {
+      return;
+    }
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= 0 && num <= 99) {
+      onComparisonTimestepChange(num);
+    }
+  };
+
+  const handleComparisonInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // 回车时启用对比
+    if (e.key === 'Enter' && !comparisonEnabled) {
+      onComparisonToggle(true);
+    }
+  };
+
   return (
     <div className="density-histogram" ref={containerRef}>
       <div className="evolution-chart-title">
         <span className="title-text">密度分布直方图</span>
         <span className="title-actions">
+          {/* ── 对比输入框 + 开关 ── */}
+          <span className={`comparison-group${comparisonEnabled ? ' active' : ''}`}>
+            <input
+              type="number"
+              className="comparison-input"
+              min={0}
+              max={99}
+              value={comparisonTimestep ?? ''}
+              onChange={handleComparisonInputChange}
+              onKeyDown={handleComparisonInputKeyDown}
+              placeholder="步"
+              title="输入对比时间步 (0-99)"
+            />
+            <button
+              type="button"
+              className={`comparison-switch${comparisonEnabled ? ' active' : ''}`}
+              onClick={() => onComparisonToggle(!comparisonEnabled)}
+              title={comparisonEnabled ? '取消对比' : '启用对比'}
+            >
+              <span className="switch-track">
+                <span className="switch-thumb" />
+              </span>
+            </button>
+          </span>
+
           {selectedRange && (
             <Button outlined size="small" onClick={handleClearSelection}>
               ✕ 清除选择
@@ -451,12 +561,18 @@ const DensityHistogram: React.FC<DensityHistogramProps> = ({
         {legendOpen && stats && (
           <div className="chart-legend-panel">
             <div className="legend-item">
+              <span className="legend-swatch" style={{ background: CH.binUnselected }} />
+              <span className="legend-label">当前步</span>
+            </div>
+            {comparisonEnabled && comparisonTimestep !== undefined && (
+              <div className="legend-item">
+                <span className="legend-swatch" style={{ background: CH.comparisonBin }} />
+                <span className="legend-label">对比步 {comparisonTimestep}</span>
+              </div>
+            )}
+            <div className="legend-item">
               <span className="legend-swatch" style={{ background: CH.binSelected }} />
               <span className="legend-label">已选</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-swatch" style={{ background: CH.binUnselected }} />
-              <span className="legend-label">全部</span>
             </div>
             <div className="legend-divider" />
             <div className="legend-item legend-stat">

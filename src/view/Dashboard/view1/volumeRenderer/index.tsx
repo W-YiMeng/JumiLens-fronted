@@ -487,6 +487,26 @@ const VolumeRenderer: React.FC = observer(() => {
                 );
           volumeStore.setThumbnailImage(step, 'high', img);
         }
+
+        if (!volumeStore.getThumbnailImage(step, 'medium')) {
+          const img =
+            volumeStore.thumbnailCompareMode !== 'off' && refData
+              ? vs.renderThumbnailDiff(
+                  data, refData,
+                  volumeStore.thumbnailMediumRange,
+                  volumeStore.thumbnailView,
+                  volumeStore.thumbnailCompareOverlay,
+                  HIGH_SIZE
+                )
+              : vs.renderThumbnail(
+                  data,
+                  volumeStore.thumbnailMediumRange,
+                  hexToRgb(COLORS.density2D.mediumPreview),
+                  volumeStore.thumbnailView,
+                  HIGH_SIZE
+                );
+          volumeStore.setThumbnailImage(step, 'medium', img);
+        }
       }
     };
 
@@ -496,6 +516,8 @@ const VolumeRenderer: React.FC = observer(() => {
     volumeStore.thumbnailView,
     volumeStore.thumbnailLowRange[0],
     volumeStore.thumbnailLowRange[1],
+    volumeStore.thumbnailMediumRange[0],
+    volumeStore.thumbnailMediumRange[1],
     volumeStore.thumbnailHighRange[0],
     volumeStore.thumbnailHighRange[1],
     volumeStore.thumbnailRefreshToken,

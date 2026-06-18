@@ -18,7 +18,7 @@ const tailsData = tailsRaw as Record<string, TailsStepData>;
 const C = COLORS.timeAxis;
 
 // ── Margins (tight for raw skewness, no wasted space) ──
-const M = { top: 4, right: 1, bottom: 18, left: 20 };
+const M = { top: 4, right: 1, bottom: 18, left: 2 };
 
 interface TailsLineChartProps {
   currentStep: number;
@@ -253,7 +253,7 @@ const TailsLineChart: React.FC<TailsLineChartProps> = observer(({ currentStep, t
           <div className="tails-chart-tooltip-step">时间步 {tooltip.step}</div>
           <div style={{ color: C.skewness }}>偏度 {tooltipValues.skewness}</div>
           <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 'clamp(7px, 0.5vw, 9px)', marginTop: 2, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 2 }}>
-            {thumbnailSteps.includes(tooltip.step) ? 'Shift+点击 移除缩略图' : 'Shift+点击 加入缩略图'}
+            {/* {thumbnailSteps.includes(tooltip.step) ? 'Shift+点击 移除缩略图' : 'Shift+点击 加入缩略图'} */}
           </div>
         </div>
       )}

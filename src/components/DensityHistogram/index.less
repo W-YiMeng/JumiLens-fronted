@@ -32,8 +32,99 @@
     .title-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-shrink: 0;
+    }
+
+    // ── 对比功能组 ──
+    .comparison-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 4px;
+      border-radius: 6px;
+      transition: background 0.2s;
+
+      &.active {
+        background: rgba(22, 119, 255, 0.06);
+      }
+    }
+
+    .comparison-input {
+      width: 42px;
+      height: 22px;
+      padding: 0 4px;
+      font-size: 11px;
+      font-family: var(--font-sans);
+      text-align: center;
+      color: hsl(var(--foreground));
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+
+      &::placeholder {
+        color: hsl(var(--muted-foreground));
+        font-size: 10px;
+      }
+
+      &:focus {
+        border-color: #1677ff;
+        box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+      }
+
+      /* 隐藏 number input 的 spinner */
+      &::-webkit-inner-spin-button,
+      &::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    .comparison-switch {
+      display: inline-flex;
+      align-items: center;
+      padding: 0;
+      margin: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      outline: none;
+      flex-shrink: 0;
+
+      .switch-track {
+        display: inline-block;
+        width: 28px;
+        height: 16px;
+        background: #d9d9d9;
+        border-radius: 8px;
+        position: relative;
+        transition: background 0.25s ease;
+      }
+
+      .switch-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 12px;
+        height: 12px;
+        background: #ffffff;
+        border-radius: 50%;
+        transition: transform 0.25s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      }
+
+      &.active .switch-track {
+        background: #1677ff;
+      }
+
+      &.active .switch-thumb {
+        transform: translateX(12px);
+      }
     }
   }
 

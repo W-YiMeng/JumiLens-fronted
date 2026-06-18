@@ -383,7 +383,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6%;
+  gap: 3.5%;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
@@ -397,7 +397,7 @@
 
 .thumb-rows {
   display: flex; align-items: stretch;
-  flex: 0 0 47%;
+  flex: 0 0 31%;
   min-height: 0;
   min-width: max-content;
   gap: clamp(3px, 0.35vw, 6px);
@@ -434,6 +434,11 @@
   &--low {
     color: hsl(200 85% 42%);
     .thumb-row-label__dot { background: hsl(200 85% 48%); }
+  }
+
+  &--medium {
+    color: hsl(38 92% 38%);
+    .thumb-row-label__dot { background: hsl(38 92% 48%); }
   }
 
   &--high {

@@ -35,7 +35,7 @@ export const COLORS = {
   // ── 时间轴 (TailsLineChart) ──────────────────────────────
   timeAxis: {
     /** 偏度曲线 */
-    skewness: '#C8960C',
+    skewness: '#4393c3',
     /** 高密度曲线 */
     highDensity: '#2878B5',
     /** 低密度曲线 */
@@ -51,37 +51,39 @@ export const COLORS = {
     /** 当前步指示线 */
     indicator: '#555',
     /** 缩略图标记三角 */
-    thumbMarker: '#C8960C',
+    thumbMarker: '#18567d',
     /** 交点圆点描边 */
     dotStroke: '#ffffff',
     /** 当前步高亮带 */
     highlightBand: 'rgba(0,0,0,0.04)',
   },
 
-  // ── 高低密度 2D 预览缩略图 ────────────────────────────
+  // ── 低/中/高密度 2D 预览缩略图 ────────────────────────────
   density2D: {
     /** 低密度体素高亮色 */
-    lowPreview: '#4DCCFF',
+    lowPreview: '#3288bd',
+    /** 中密度体素高亮色 */
+    mediumPreview: '#fdae61',
     /** 高密度体素高亮色 */
-    highPreview: '#F21E14',
+    highPreview: '#d53e4f',
   },
 
   // ── 差异图层 (Diff layer) ──────────────────────────────
   diffLayer: {
     /** 增长 (red) — 3D 渲染用 */
-    growth: '#F21E14',
+    growth: '#b2182b',
     /** 下降 (blue) — 3D 渲染用 */
-    decline: '#1417F2',
+    decline: '#2166ac',
     /** 增长 预览缩略图 (较柔和) */
-    growthPreview: '#FF4D33',
+    growthPreview: '#ff4258',
     /** 下降 预览缩略图 (较柔和) */
-    declinePreview: '#3399FF',
+    declinePreview: '#3f9fff',
     /** 差异开关 增长色标 (CSS) */
-    swatchGrowth: '#ff3030',
+    swatchGrowth: '#b2182b',
     /** 差异开关 下降色标 (CSS) */
-    swatchDecline: '#3060ff',
+    swatchDecline: '#2166ac',
     /** 无变化体素 (diffClassifier) */
-    noChange: '#161616',
+    noChange: '#053061',
   },
 
   // ── 密度直方图 (DensityHistogram) ──────────────────────
@@ -91,13 +93,13 @@ export const COLORS = {
     /** 网格线 */
     grid: '#f5f5f5',
     /** 选中 bin */
-    binSelected: '#ff6b6b',
+    binSelected: '#053061',
     /** 未选中 bin */
-    binUnselected: '#152c4d',
+    binUnselected: '#4393c3',
     /** 拖拽选区填充 */
-    dragFill: 'rgba(255,107,107,0.12)',
+    dragFill: 'rgba(255, 208, 107, 0.12)',
     /** 拖拽选区描边 */
-    dragStroke: '#ff6b6b',
+    dragStroke: '#92c5de',
     /** 已确认选区填充 */
     confirmedFill: 'rgba(250,173,20,0.12)',
     /** 已确认选区描边 */
@@ -111,11 +113,11 @@ export const COLORS = {
     /** 上横轴标签 (归一化) */
     labelXTop: '#ff16fb',
     /** P1 / P99 标注线 */
-    annotationP1P99: '#ff4d4f',
+    annotationP1P99: 'rgba(4, 82, 170, 1)',
     /** Mean 标注线 */
-    annotationMean: '#1d39c4',
+    annotationMean: 'rgba(103,0,31,1)',
     /** Median 标注线 */
-    annotationMedian: '#52c41a',
+    annotationMedian: '#23540a',
     /** Min / Max 标注线 */
     annotationMinMax: '#999999',
     /** 标注药丸文字 */
@@ -134,6 +136,20 @@ export const COLORS = {
     infoValueNorm: '#1677ff',
     /** 图例 / N 值文字 */
     legendText: '#8c8c8c',
+    /** 对比时间步直方图条形 (半透明，叠加时差异明显) */
+    comparisonBin: 'rgba(214,96,77, 0.45)',
+    /** 对比时间步直方图条形 (选中，半透明) */
+    comparisonBinSelected: 'rgba(214, 95, 77, 0.42)',
+    /** 对比开关 active 态 */
+    comparisonSwitchActive: '#4393c3',
+    /** 对比开关 inactive 轨 */
+    comparisonSwitchTrack: '#d9d9d9',
+    /** 对比输入框背景 */
+    comparisonInputBg: '#fafafa',
+    /** 对比输入框边框 */
+    comparisonInputBorder: '#d9d9d9',
+    /** 对比输入框文字 */
+    comparisonInputText: '#555555',
   },
 
   // ── 密度演化统计 (EvolutionChart) ──────────────────────
@@ -155,13 +171,13 @@ export const COLORS = {
     /** min‑max 区域填充 */
     minMaxFill: 'rgba(180,180,180,0.25)',
     /** p1‑p99 区域填充 */
-    p1p99Fill: 'rgba(255,77,79,0.12)',
+    p1p99Fill: 'rgba(4, 82, 170, 0.12)',
     /** mean ± sigma 区域填充 */
-    meanSigmaFill: 'rgba(114,46,209,0.12)',
+    meanSigmaFill: 'rgba(23, 116, 208, 0.12)',
     /** Median 虚线 */
-    medianLine: '#52c41a',
+    medianLine: '#23540a',
     /** Mean 实线 */
-    meanLine: '#1d39c4',
+    meanLine: 'rgba(103,0,31,1)',
     /** 当前步指示线 */
     stepIndicator: 'rgba(0,0,0,0.45)',
     /** 悬停指示线 */
@@ -175,9 +191,9 @@ export const COLORS = {
     /** 图例 fill 色块 (min‑max) */
     legendMinMax: 'rgba(180,180,180,0.5)',
     /** 图例 fill 色块 (p1‑p99) */
-    legendP1P99: 'rgba(255,77,79,0.2)',
+    legendP1P99: 'rgba(4, 82, 170, 0.2)',
     /** 图例 fill 色块 (mean±σ) */
-    legendMeanSigma: 'rgba(114,46,209,0.2)',
+    legendMeanSigma: 'rgba(103,0,31,1)',
     /** 悬浮提示高值 */
     tooltipHi: '#ffa940',
     /** 悬浮提示低值 */
